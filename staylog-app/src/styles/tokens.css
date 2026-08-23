@@ -1,0 +1,93 @@
+/* ============ 宿迹 STAYLOG design tokens: dark-first（深夜大堂）============ */
+:root{
+  --ink:#0d1320;          /* 页面底 */
+  --surface:#151d2e;      /* 卡片 */
+  --surface-2:#1b2438;    /* 卡片内层/悬浮 */
+  --line:#273350;         /* 分隔线 */
+  --text:#e9edf5;
+  --muted:#8d97ad;
+  --faint:#5b6580;
+  --brass:#d4a853;        /* 黄铜主色 */
+  --brass-soft:rgba(212,168,83,.14);
+  --good:#4cc38a;
+  --warn:#e0aa4e;
+  --danger:#e06060;
+  --map-dot:#2c3a5c;
+  --map-glow:rgba(212,168,83,.35);
+  --hilton:#3f76d4;
+  --marriott:#b0453f;
+  --ihg:#8a5fc0;
+  --hyatt:#4d9e8a;
+  --huazhu:#d97544;
+  --other:#7a8499;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ink:#f1efe9; --surface:#faf9f5; --surface-2:#efede5;
+    --line:#ddd8ca; --text:#1c2334; --muted:#6b7386; --faint:#98a0b2;
+    --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
+    --good:#2b9463; --warn:#a4791f; --danger:#bf4040;
+    --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
+    --hilton:#2a5cb8; --marriott:#9c3832; --ihg:#7346ab; --hyatt:#33806d; --huazhu:#c25c2d; --other:#6b7386;
+    --shadow:0 8px 24px rgba(60,55,40,.12);
+  }
+}
+:root[data-theme="light"]{
+  --ink:#f1efe9; --surface:#faf9f5; --surface-2:#efede5;
+  --line:#ddd8ca; --text:#1c2334; --muted:#6b7386; --faint:#98a0b2;
+  --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
+  --good:#2b9463; --warn:#a4791f; --danger:#bf4040;
+  --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
+  --hilton:#2a5cb8; --marriott:#9c3832; --ihg:#7346ab; --hyatt:#33806d; --huazhu:#c25c2d; --other:#6b7386;
+  --shadow:0 8px 24px rgba(60,55,40,.12);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *{transition:none!important;animation:none!important}
+}
+body{
+  background:var(--ink); color:var(--text);
+  font-family:-apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  font-size:14px; line-height:1.6; min-height:100vh;
+}
+.serif{font-family:"Palatino","Iowan Old Style","Times New Roman","Songti SC","SimSun",serif}
+.mono{font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums}
+
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select,textarea{
+  font:inherit;color:var(--text);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:8px;padding:8px 12px;width:100%;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible,
+button:focus-visible,a:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+a{color:inherit}
+
+/* 通用卡片与控件 */
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:var(--shadow);
+}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;
+  border:1px solid var(--line);background:var(--surface-2);font-size:13.5px;
+  transition:border-color .15s,background .15s;
+}
+.btn:hover{border-color:var(--brass)}
+.btn-primary{background:var(--brass);border-color:var(--brass);color:var(--ink);font-weight:600}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-danger{color:var(--danger);border-color:var(--danger)}
+.chip{
+  font-size:10.5px;letter-spacing:.08em;padding:2px 9px;border-radius:99px;
+  border:1px solid var(--bc,var(--line));color:var(--bc,var(--muted));
+}
+.b-hilton{--bc:var(--hilton)} .b-marriott{--bc:var(--marriott)}
+.b-ihg{--bc:var(--ihg)} .b-hyatt{--bc:var(--hyatt)} .b-huazhu{--bc:var(--huazhu)} .b-other{--bc:var(--other)}
+
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.sec-head h2{font-size:21px;font-weight:600;letter-spacing:.04em}
+.sec-head .en{font-size:10px;letter-spacing:.3em;color:var(--faint);text-transform:uppercase}
+.sec-head .rule{flex:1;height:1px;background:var(--line)}

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宿迹 STAYLOG — 我的酒店住宿档案</title>
+<style>
+/* ============ tokens: dark-first（深夜大堂）============ */
+:root{
+  --ink:#0d1320;          /* 页面底 */
+  --surface:#151d2e;      /* 卡片 */
+  --surface-2:#1b2438;    /* 卡片内层/悬浮 */
+  --line:#273350;         /* 分隔线 */
+  --text:#e9edf5;
+  --muted:#8d97ad;
+  --faint:#5b6580;
+  --brass:#d4a853;        /* 黄铜主色 */
+  --brass-soft:rgba(212,168,83,.14);
+  --good:#4cc38a;
+  --map-dot:#2c3a5c;
+  --map-glow:rgba(212,168,83,.35);
+  --hilton:#3f76d4;
+  --marriott:#b0453f;
+  --ihg:#8a5fc0;
+  --hyatt:#4d9e8a;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --ink:#f1efe9; --surface:#faf9f5; --surface-2:#efede5;
+    --line:#ddd8ca; --text:#1c2334; --muted:#68705f0;
+    --muted:#6b7386; --faint:#98a0b2;
+    --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
+    --good:#2b9463; --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
+    --hilton:#2a5cb8; --marriott:#9c3832; --ihg:#7346ab; --hyatt:#33806d;
+    --shadow:0 8px 24px rgba(60,55,40,.12);
+  }
+}
+:root[data-theme="light"]{
+  --ink:#f1efe9; --surface:#faf9f5; --surface-2:#efede5;
+  --line:#ddd8ca; --text:#1c2334; --muted:#6b7386; --faint:#98a0b2;
+  --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
+  --good:#2b9463; --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
+  --hilton:#2a5cb8; --marriott:#9c3832; --ihg:#7346ab; --hyatt:#33806d;
+  --shadow:0 8px 24px rgba(60,55,40,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none!important;animation:none!important} }
+body{
+  background:var(--ink); color:var(--text);
+  font-family:-apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  font-size:14px; line-height:1.6; min-height:100vh;
+}
+.serif{font-family:"Palatino","Iowan Old Style","Times New Roman","Songti SC","SimSun",serif}
+.mono{font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums}
+
+/* ============ 应用外壳 ============ */
+.shell{display:flex;min-height:100vh}
+nav{
+  width:216px;flex:0 0 216px;position:sticky;top:0;height:100vh;
+  border-right:1px solid var(--line);padding:28px 18px;
+  display:flex;flex-direction:column;gap:4px;background:var(--ink);
+}
+.logo{display:flex;align-items:baseline;gap:8px;padding:0 10px;margin-bottom:26px}
+.logo .zh{font-size:26px;letter-spacing:.12em;color:var(--brass)}
+.logo .en{font-size:10px;letter-spacing:.28em;color:var(--faint)}
+nav a{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
+  color:var(--muted);text-decoration:none;font-size:13.5px;transition:background .15s,color .15s;
+}
+nav a:hover{background:var(--surface);color:var(--text)}
+nav a:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+nav a .ico{width:16px;text-align:center;color:var(--faint)}
+nav a:hover .ico{color:var(--brass)}
+nav .spacer{flex:1}
+.member-card{
+  margin-top:14px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+  background:linear-gradient(135deg,var(--surface),var(--surface-2));
+}
+.member-card .lbl{font-size:10px;letter-spacing:.22em;color:var(--faint)}
+.member-card .val{font-size:15px;color:var(--brass);letter-spacing:.06em}
+
+main{flex:1;min-width:0;padding:36px 44px 80px;max-width:1180px}
+section{margin-bottom:52px;scroll-margin-top:24px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.sec-head h2{font-size:21px;font-weight:600;letter-spacing:.04em}
+.sec-head .en{font-size:10px;letter-spacing:.3em;color:var(--faint);text-transform:uppercase}
+.sec-head .rule{flex:1;height:1px;background:var(--line)}
+
+/* ============ 总览 ============ */
+.hero{margin-bottom:44px}
+.hero .greet{color:var(--muted);font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+.hero h1{font-size:34px;font-weight:600;letter-spacing:.03em;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--brass)}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:26px}
+.stat{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;box-shadow:var(--shadow);
+}
+.stat .k{font-size:11px;color:var(--muted);letter-spacing:.14em;margin-bottom:6px}
+.stat .v{font-size:26px;line-height:1.1;color:var(--text)}
+.stat .v small{font-size:12px;color:var(--faint);margin-left:3px}
+.stat .d{font-size:11px;color:var(--good);margin-top:5px}
+
+/* 月度晚数图 */
+.chart-card{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px 14px;box-shadow:var(--shadow)}
+.chart-card .t{font-size:12px;color:var(--muted);letter-spacing:.12em;margin-bottom:14px}
+.bars{display:flex;align-items:flex-end;gap:10px;height:96px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar i{display:block;width:100%;max-width:38px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--brass),rgba(212,168,83,.45));min-height:2px}
+.bar.mute i{background:var(--surface-2)}
+.bar b{font-size:10.5px;color:var(--faint);font-weight:400}
+.bar .n{font-size:10.5px;color:var(--muted)}
+
+/* ============ 会籍 ============ */
+.programs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.prog{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:20px 22px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.prog::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--bc)}
+.prog .row1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px}
+.prog .name{font-size:16px;font-weight:600}
+.prog .en-name{font-size:11px;color:var(--faint);letter-spacing:.1em}
+.tier{
+  font-size:11px;letter-spacing:.14em;padding:4px 10px;border-radius:99px;
+  background:var(--brass-soft);color:var(--brass);border:1px solid var(--brass);white-space:nowrap;
+}
+.prog .pts{display:flex;gap:26px;margin:14px 0 12px}
+.prog .pts .k{font-size:10.5px;color:var(--faint);letter-spacing:.12em}
+.prog .pts .v{font-size:19px}
+.track .cap{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px}
+.track .cap b{color:var(--text);font-weight:500}
+.rail{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.rail i{display:block;height:100%;border-radius:99px;background:var(--bc)}
+.prog .note{font-size:11px;color:var(--faint);margin-top:8px}
+
+/* ============ 地图 ============ */
+.map-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.map-wrap{position:relative}
+.map-wrap canvas{display:block;width:100%;height:auto}
+.pin{position:absolute;transform:translate(-50%,-50%);cursor:pointer}
+.pin i{
+  display:block;border-radius:50%;background:var(--brass);
+  box-shadow:0 0 0 4px var(--map-glow),0 0 14px var(--map-glow);
+}
+.pin .tip{
+  position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:8px 12px;white-space:nowrap;font-size:12px;box-shadow:var(--shadow);
+  opacity:0;pointer-events:none;transition:opacity .15s;z-index:5;
+}
+.pin .tip b{color:var(--brass);font-weight:600}
+.pin .tip span{color:var(--muted)}
+.pin:hover .tip,.pin:focus-visible .tip{opacity:1}
+.pin:focus-visible{outline:2px solid var(--brass);outline-offset:4px;border-radius:50%}
+.map-foot{display:flex;gap:26px;padding:14px 22px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.map-foot b{color:var(--text)}
+
+/* ============ 住宿记录 ============ */
+.stay{
+  display:grid;grid-template-columns:96px 1fr auto;gap:20px;align-items:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:16px 20px;margin-bottom:10px;box-shadow:var(--shadow);
+  transition:border-color .15s;
+}
+.stay:hover{border-color:var(--brass)}
+.stay .date .m{font-size:11px;color:var(--faint);letter-spacing:.18em}
+.stay .date .d{font-size:21px}
+.stay .date .r{font-size:11px;color:var(--muted)}
+.stay .hotel{font-size:15.5px;font-weight:600;margin-bottom:3px}
+.stay .meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);align-items:center}
+.chip{
+  font-size:10.5px;letter-spacing:.08em;padding:2px 9px;border-radius:99px;
+  border:1px solid var(--bc);color:var(--bc);
+}
+.stay .right{text-align:right}
+.stay .nights{font-size:17px}
+.stay .nights small{font-size:11px;color:var(--faint)}
+.stay .earn{font-size:11.5px;color:var(--good)}
+.b-hilton{--bc:var(--hilton)} .b-marriott{--bc:var(--marriott)}
+.b-ihg{--bc:var(--ihg)} .b-hyatt{--bc:var(--hyatt)}
+
+footer{color:var(--faint);font-size:11.5px;border-top:1px solid var(--line);padding-top:18px}
+@media (max-width:1080px){ .stats{grid-template-columns:repeat(3,1fr)} .programs{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+<nav aria-label="主导航">
+  <div class="logo serif"><span class="zh">宿迹</span><span class="en">STAYLOG</span></div>
+  <a href="#overview"><span class="ico">◈</span>总览</a>
+  <a href="#programs"><span class="ico">♦</span>常旅客计划</a>
+  <a href="#map"><span class="ico">◉</span>足迹地图</a>
+  <a href="#stays"><span class="ico">≡</span>住宿记录</a>
+  <div class="spacer"></div>
+  <div class="member-card">
+    <div class="lbl">2026 住宿档案</div>
+    <div class="val serif mono">Nº 000 041</div>
+  </div>
+</nav>
+
+<main>
+<section id="overview" class="hero">
+  <div class="greet">2026年8月22日 · 星期六</div>
+  <h1 class="serif">今年，你在 <em>7 个国家</em> 醒来过。</h1>
+  <div class="stats">
+    <div class="stat"><div class="k">住宿晚数</div><div class="v mono">41<small>晚</small></div><div class="d">↑ 较去年同期 +9</div></div>
+    <div class="stat"><div class="k">酒店</div><div class="v mono">18<small>家</small></div><div class="d">↑ 新增 6 家</div></div>
+    <div class="stat"><div class="k">城市</div><div class="v mono">12<small>座</small></div><div class="d">↑ 首访 4 座</div></div>
+    <div class="stat"><div class="k">国家/地区</div><div class="v mono">7<small>个</small></div><div class="d">↑ 首访 2 个</div></div>
+    <div class="stat"><div class="k">累计积分</div><div class="v mono">52.7<small>万</small></div><div class="d">↑ 本年 +18.3万</div></div>
+    <div class="stat"><div class="k">房费支出</div><div class="v mono">¥8.6<small>万</small></div><div class="d">均价 ¥2,098/晚</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="t">月度住宿晚数 · 2026</div>
+    <div class="bars" role="img" aria-label="2026年每月住宿晚数柱状图，最高为8月的9晚">
+      <div class="bar"><span class="n mono">3</span><i style="height:33%"></i><b>1月</b></div>
+      <div class="bar"><span class="n mono">2</span><i style="height:22%"></i><b>2月</b></div>
+      <div class="bar"><span class="n mono">5</span><i style="height:55%"></i><b>3月</b></div>
+      <div class="bar"><span class="n mono">4</span><i style="height:44%"></i><b>4月</b></div>
+      <div class="bar"><span class="n mono">7</span><i style="height:78%"></i><b>5月</b></div>
+      <div class="bar"><span class="n mono">5</span><i style="height:55%"></i><b>6月</b></div>
+      <div class="bar"><span class="n mono">6</span><i style="height:66%"></i><b>7月</b></div>
+      <div class="bar"><span class="n mono">9</span><i style="height:100%"></i><b>8月</b></div>
+      <div class="bar mute"><span class="n mono">–</span><i style="height:4%"></i><b>9月</b></div>
+      <div class="bar mute"><span class="n mono">–</span><i style="height:4%"></i><b>10月</b></div>
+      <div class="bar mute"><span class="n mono">–</span><i style="height:4%"></i><b>11月</b></div>
+      <div class="bar mute"><span class="n mono">–</span><i style="height:4%"></i><b>12月</b></div>
+    </div>
+  </div>
+</section>
+
+<section id="programs">
+  <div class="sec-head"><h2 class="serif">常旅客计划</h2><span class="en">Loyalty Programs</span><span class="rule"></span></div>
+  <div class="programs">
+    <div class="prog b-hilton">
+      <div class="row1"><div><div class="name">希尔顿荣誉客会</div><div class="en-name">HILTON HONORS</div></div><span class="tier">钻石会员 DIAMOND</span></div>
+      <div class="pts">
+        <div><div class="k">积分余额</div><div class="v mono">286,540</div></div>
+        <div><div class="k">本年入住</div><div class="v mono">17 晚</div></div>
+      </div>
+      <div class="track">
+        <div class="cap"><span>钻石续级进度</span><b class="mono">42 / 60 晚</b></div>
+        <div class="rail"><i style="width:70%"></i></div>
+      </div>
+      <div class="note">含信用卡赠晚 · 还差 18 晚续级，按当前节奏预计 11 月达成</div>
+    </div>
+    <div class="prog b-marriott">
+      <div class="row1"><div><div class="name">万豪旅享家</div><div class="en-name">MARRIOTT BONVOY</div></div><span class="tier">白金精英 PLATINUM</span></div>
+      <div class="pts">
+        <div><div class="k">积分余额</div><div class="v mono">152,210</div></div>
+        <div><div class="k">本年入住</div><div class="v mono">12 晚</div></div>
+      </div>
+      <div class="track">
+        <div class="cap"><span>升级钛金精英</span><b class="mono">38 / 75 晚</b></div>
+        <div class="rail"><i style="width:51%"></i></div>
+      </div>
+      <div class="note">白金已锁定至 2028年2月 · 套房升级券 ×2 未使用</div>
+    </div>
+    <div class="prog b-ihg">
+      <div class="row1"><div><div class="name">IHG 优悦会</div><div class="en-name">IHG ONE REWARDS</div></div><span class="tier">白金会员 PLATINUM</span></div>
+      <div class="pts">
+        <div><div class="k">积分余额</div><div class="v mono">64,800</div></div>
+        <div><div class="k">本年入住</div><div class="v mono">9 晚</div></div>
+      </div>
+      <div class="track">
+        <div class="cap"><span>升级钻石会员</span><b class="mono">26 / 70 晚</b></div>
+        <div class="rail"><i style="width:37%"></i></div>
+      </div>
+      <div class="note">里程碑奖励：还差 4 晚可选 3,000 分或餐饮礼遇</div>
+    </div>
+    <div class="prog b-hyatt">
+      <div class="row1"><div><div class="name">凯悦天地</div><div class="en-name">WORLD OF HYATT</div></div><span class="tier">探索者 EXPLORIST</span></div>
+      <div class="pts">
+        <div><div class="k">积分余额</div><div class="v mono">23,150</div></div>
+        <div><div class="k">本年入住</div><div class="v mono">3 晚</div></div>
+      </div>
+      <div class="track">
+        <div class="cap"><span>升级环球客 GLOBALIST</span><b class="mono">22 / 60 晚</b></div>
+        <div class="rail"><i style="width:36%"></i></div>
+      </div>
+      <div class="note">Cat 1-4 免房券 ×1 · 2026-12-31 到期，建议优先使用</div>
+    </div>
+  </div>
+</section>
+
+<section id="map">
+  <div class="sec-head"><h2 class="serif">足迹地图</h2><span class="en">Footprint</span><span class="rule"></span></div>
+  <div class="map-card">
+    <div class="map-wrap" id="mapWrap"><canvas id="worldMap" aria-label="世界地图，标注了住过酒店的12座城市"></canvas></div>
+    <div class="map-foot">
+      <span>累计足迹 <b class="mono">12</b> 城 · <b class="mono">7</b> 国</span>
+      <span>最常入住 <b>东京</b>（9晚）</span>
+      <span>最远一晚 <b>巴黎</b> · 距家 <b class="mono">8,214</b> km</span>
+    </div>
+  </div>
+</section>
+
+<section id="stays">
+  <div class="sec-head"><h2 class="serif">住宿记录</h2><span class="en">Stay Timeline</span><span class="rule"></span></div>
+
+  <div class="stay">
+    <div class="date"><div class="m mono">AUG</div><div class="d mono">08–12</div><div class="r">2026</div></div>
+    <div><div class="hotel">东京康莱德酒店 <span style="color:var(--faint);font-weight:400;font-size:12px">Conrad Tokyo</span></div>
+      <div class="meta"><span class="chip b-hilton">希尔顿</span><span>东京 · 汐留</span><span>行政湾景大床房</span><span>含行政酒廊</span></div></div>
+    <div class="right"><div class="nights mono">4<small> 晚</small></div><div class="earn mono">+48,200 分</div></div>
+  </div>
+
+  <div class="stay">
+    <div class="date"><div class="m mono">JUL</div><div class="d mono">18–20</div><div class="r">2026</div></div>
+    <div><div class="hotel">上海艾迪逊酒店 <span style="color:var(--faint);font-weight:400;font-size:12px">The Shanghai EDITION</span></div>
+      <div class="meta"><span class="chip b-marriott">万豪</span><span>上海 · 南京东路</span><span>豪华客房</span><span>套房升级 ✓</span></div></div>
+    <div class="right"><div class="nights mono">2<small> 晚</small></div><div class="earn mono">+21,400 分</div></div>
+  </div>
+
+  <div class="stay">
+    <div class="date"><div class="m mono">JUN</div><div class="d mono">12–15</div><div class="r">2026</div></div>
+    <div><div class="hotel">新加坡安达仕酒店 <span style="color:var(--faint);font-weight:400;font-size:12px">Andaz Singapore</span></div>
+      <div class="meta"><span class="chip b-hyatt">凯悦</span><span>新加坡 · 武吉士</span><span>安达仕大床房</span><span>积分兑换</span></div></div>
+    <div class="right"><div class="nights mono">3<small> 晚</small></div><div class="earn mono">兑换 45,000 分</div></div>
+  </div>
+
+  <div class="stay">
+    <div class="date"><div class="m mono">MAY</div><div class="d mono">01–06</div><div class="r">2026</div></div>
+    <div><div class="hotel">三亚海棠湾洲际度假酒店 <span style="color:var(--faint);font-weight:400;font-size:12px">InterContinental Sanya</span></div>
+      <div class="meta"><span class="chip b-ihg">IHG</span><span>三亚 · 海棠湾</span><span>海景房</span><span>家庭出行</span></div></div>
+    <div class="right"><div class="nights mono">5<small> 晚</small></div><div class="earn mono">+32,600 分</div></div>
+  </div>
+
+  <div class="stay">
+    <div class="date"><div class="m mono">APR</div><div class="d mono">03–05</div><div class="r">2026</div></div>
+    <div><div class="hotel">曼谷金普顿玛莱酒店 <span style="color:var(--faint);font-weight:400;font-size:12px">Kimpton Maa-Lai Bangkok</span></div>
+      <div class="meta"><span class="chip b-ihg">IHG</span><span>曼谷 · 朗双</span><span>高级客房</span></div></div>
+    <div class="right"><div class="nights mono">2<small> 晚</small></div><div class="earn mono">+9,800 分</div></div>
+  </div>
+
+  <div class="stay">
+    <div class="date"><div class="m mono">MAR</div><div class="d mono">21–24</div><div class="r">2026</div></div>
+    <div><div class="hotel">巴黎旺多姆柏悦酒店 <span style="color:var(--faint);font-weight:400;font-size:12px">Park Hyatt Paris-Vendôme</span></div>
+      <div class="meta"><span class="chip b-hyatt">凯悦</span><span>巴黎 · 旺多姆广场</span><span>柏悦大床房</span><span>周年旅行</span></div></div>
+    <div class="right"><div class="nights mono">3<small> 晚</small></div><div class="earn mono">+18,900 分</div></div>
+  </div>
+
+  <footer>宿迹 STAYLOG · 概念原型 · 数据为演示样例 · 灵感来自 Flighty 与 Awaybook 的信息设计</footer>
+</section>
+</main>
+</div>
+
+<script>
+/* ---------- 点阵世界地图 ---------- */
+const CONTINENTS = [
+  // 北美
+  [[-168,66],[-140,70],[-125,72],[-110,73],[-95,72],[-85,70],[-75,72],[-60,60],[-65,50],[-75,45],[-70,42],[-75,35],[-80,30],[-81,25],[-90,29],[-95,28],[-97,25],[-105,20],[-95,15],[-83,8],[-92,15],[-105,22],[-112,30],[-120,35],[-125,42],[-130,52],[-145,60],[-160,58]],
+  // 格陵兰
+  [[-58,76],[-30,82],[-20,79],[-25,70],[-42,60],[-52,65]],
+  // 南美
+  [[-80,10],[-70,12],[-60,8],[-52,4],[-45,-2],[-35,-9],[-38,-15],[-42,-23],[-48,-28],[-53,-34],[-58,-39],[-63,-42],[-68,-50],[-71,-54],[-73,-48],[-73,-40],[-70,-25],[-70,-18],[-75,-15],[-80,-8],[-81,-2],[-78,4]],
+  // 欧洲
+  [[-10,43],[-9,37],[-2,40],[3,43],[10,44],[15,38],[25,40],[30,45],[40,47],[48,50],[45,60],[40,68],[28,70],[18,68],[10,64],[5,60],[-3,58],[-8,52]],
+  // 非洲
+  [[-17,15],[-10,30],[0,36],[10,37],[20,32],[32,31],[35,28],[43,11],[51,10],[48,2],[40,-5],[40,-15],[35,-22],[32,-29],[25,-34],[19,-34],[15,-28],[12,-18],[9,-2],[8,5],[-5,5],[-12,8]],
+  // 亚洲
+  [[48,50],[60,55],[60,68],[70,73],[90,75],[110,76],[130,72],[150,68],[170,66],[179,64],[170,60],[160,60],[155,53],[142,50],[135,44],[128,40],[122,38],[120,32],[115,23],[108,18],[105,10],[103,2],[98,8],[95,16],[88,22],[80,15],[77,8],[72,20],[66,25],[58,26],[52,28],[48,30],[44,38],[48,44]],
+  // 澳大利亚
+  [[114,-22],[113,-26],[115,-34],[118,-35],[124,-33],[129,-32],[134,-35],[138,-36],[141,-38],[147,-39],[150,-37],[153,-30],[153,-25],[149,-20],[145,-15],[142,-11],[138,-12],[135,-12],[131,-11],[126,-14],[122,-17]],
+];
+// 群岛/半岛补点（日本、英国、东南亚、新西兰等）
+const ISLANDS = [
+  [140,36],[137,35],[133,34],[131,33],[141,40],[142,43],[140,42],           // 日本
+  [-2,53],[-4,55],[-1,51],[-8,53],                                          // 英伦
+  [101,4],[103,1],[110,0],[114,-1],[118,-2],[122,-4],[106,-6],[110,-7],[114,-8], // 马来/印尼
+  [121,14],[123,10],[125,8],                                                // 菲律宾
+  [80,7],[73,4],                                                            // 斯里兰卡/马尔代夫
+  [174,-37],[172,-42],[168,-45],                                            // 新西兰
+  [-61,10],[-77,18],[-70,19],                                               // 加勒比
+  [45,-19],[47,-22],                                                        // 马达加斯加
+];
+const CITIES = [
+  {n:"东京",  lon:139.69,lat:35.68,nights:9,hotels:"康莱德 · 东京柏悦"},
+  {n:"大阪",  lon:135.50,lat:34.69,nights:2,hotels:"大阪万豪都酒店"},
+  {n:"上海",  lon:121.47,lat:31.23,nights:6,hotels:"艾迪逊 · 静安瑞吉"},
+  {n:"北京",  lon:116.40,lat:39.90,nights:4,hotels:"王府井希尔顿"},
+  {n:"香港",  lon:114.17,lat:22.32,nights:2,hotels:"港丽酒店"},
+  {n:"三亚",  lon:109.50,lat:18.25,nights:5,hotels:"海棠湾洲际"},
+  {n:"曼谷",  lon:100.50,lat:13.75,nights:2,hotels:"金普顿玛莱"},
+  {n:"新加坡",lon:103.85,lat:1.29, nights:3,hotels:"安达仕"},
+  {n:"迪拜",  lon:55.27, lat:25.20,nights:2,hotels:"朱美拉希尔顿"},
+  {n:"巴黎",  lon:2.35,  lat:48.86,nights:3,hotels:"旺多姆柏悦"},
+  {n:"伦敦",  lon:-0.13, lat:51.50,nights:2,hotels:"伦敦艾迪逊"},
+  {n:"纽约",  lon:-74.00,lat:40.71,nights:1,hotels:"纽约康莱德下城"},
+];
+
+const LON_MIN=-180, LON_MAX=180, LAT_MAX=78, LAT_MIN=-56;
+function project(lon,lat,w,h){
+  return [ (lon-LON_MIN)/(LON_MAX-LON_MIN)*w, (LAT_MAX-lat)/(LAT_MAX-LAT_MIN)*h ];
+}
+function inPoly(x,y,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const [xi,yi]=poly[i],[xj,yj]=poly[j];
+    if((yi>y)!==(yj>y) && x < (xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
+}
+function drawMap(){
+  const wrap=document.getElementById('mapWrap');
+  const cv=document.getElementById('worldMap');
+  const W=wrap.clientWidth, H=Math.round(W*0.52);
+  const dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+  const dotColor=getComputedStyle(document.documentElement).getPropertyValue('--map-dot').trim();
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=dotColor;
+  const step=2.4; // 经纬度步长
+  for(let lat=LAT_MAX;lat>=LAT_MIN;lat-=step){
+    for(let lon=LON_MIN;lon<=LON_MAX;lon+=step){
+      if(CONTINENTS.some(p=>inPoly(lon,lat,p))){
+        const [x,y]=project(lon,lat,W,H);
+        ctx.beginPath(); ctx.arc(x,y,1.4,0,7); ctx.fill();
+      }
+    }
+  }
+  for(const [lon,lat] of ISLANDS){
+    const [x,y]=project(lon,lat,W,H);
+    ctx.beginPath(); ctx.arc(x,y,1.4,0,7); ctx.fill();
+  }
+  // 城市标记（DOM，便于悬浮提示）
+  wrap.querySelectorAll('.pin').forEach(p=>p.remove());
+  for(const c of CITIES){
+    const [x,y]=project(c.lon,c.lat,W,H);
+    const el=document.createElement('button');
+    el.className='pin'; el.style.left=x+'px'; el.style.top=y+'px';
+    el.style.background='none'; el.style.border='none';
+    el.setAttribute('aria-label',`${c.n}，${c.nights}晚`);
+    const size=Math.max(7,Math.min(15,4+c.nights*1.2));
+    el.innerHTML=`<i style="width:${size}px;height:${size}px"></i>
+      <span class="tip"><b>${c.n}</b> · ${c.nights} 晚<br><span>${c.hotels}</span></span>`;
+    wrap.appendChild(el);
+  }
+}
+drawMap();
+let rT; window.addEventListener('resize',()=>{clearTimeout(rT);rT=setTimeout(drawMap,150)});
+const mq=window.matchMedia('(prefers-color-scheme: light)');
+mq.addEventListener?.('change',drawMap);
+</script>
+</body>
+</html>
