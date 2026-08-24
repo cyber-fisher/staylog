@@ -40,7 +40,7 @@ function transformLng(x: number, y: number): number {
   return ret;
 }
 
-/** GCJ-02 → WGS-84（用于把高德坐标放到 OSM 底图上） */
+/** GCJ-02 → WGS-84（用于把高德坐标放到 OSM/卫星底图上） */
 export function gcj02ToWgs84(lng: number, lat: number): [number, number] {
   if (outOfChina(lng, lat)) return [lng, lat];
   let dLat = transformLat(lng - 105.0, lat - 35.0);
@@ -52,6 +52,28 @@ export function gcj02ToWgs84(lng: number, lat: number): [number, number] {
   dLat = (dLat * 180.0) / (((A * (1 - EE)) / (magic * sqrtMagic)) * PI);
   dLng = (dLng * 180.0) / ((A / sqrtMagic) * Math.cos(radLat) * PI);
   return [lng * 2 - (lng + dLng), lat * 2 - (lat + dLat)];
+}
+
+/**
+ * WGS-84 → GCJ-02（把真实坐标放到高德底图上，否则偏移数百米）。
+ * 中国境外为恒等变换（返回原值），因此在卫星等 WGS 底图上无副作用。
+ */
+export function wgs84ToGcj02(lng: number, lat: number): [number, number] {
+  if (outOfChina(lng, lat)) return [lng, lat];
+  let dLat = transformLat(lng - 105.0, lat - 35.0);
+  let dLng = transformLng(lng - 105.0, lat - 35.0);
+  const radLat = (lat / 180.0) * PI;
+  let magic = Math.sin(radLat);
+  magic = 1 - EE * magic * magic;
+  const sqrtMagic = Math.sqrt(magic);
+  dLat = (dLat * 180.0) / (((A * (1 - EE)) / (magic * sqrtMagic)) * PI);
+  dLng = (dLng * 180.0) / ((A / sqrtMagic) * Math.cos(radLat) * PI);
+  return [lng + dLng, lat + dLat];
+}
+
+/** 判断经纬度是否在中国境内（决定用高德底图还是海外卫星） */
+export function inChina(lng: number, lat: number): boolean {
+  return !outOfChina(lng, lat);
 }
 
 export class AmapError extends Error {
