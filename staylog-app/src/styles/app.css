@@ -62,30 +62,66 @@
 .stay-card .actions button:hover{color:var(--brass);background:var(--surface-2)}
 .stay-card .actions button.del:hover{color:var(--danger)}
 
-/* ============ 会籍卡 ============ */
-.programs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media (max-width:1080px){.programs-grid{grid-template-columns:1fr}}
-.prog{padding:20px 22px;position:relative;overflow:hidden;border-radius:14px}
-.prog::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--bc,var(--other))}
-.prog .row1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;gap:10px}
-.prog .name{font-size:16px;font-weight:600}
-.prog .en-name{font-size:11px;color:var(--faint);letter-spacing:.1em}
-.tier-badge{
-  font-size:11px;letter-spacing:.14em;padding:4px 10px;border-radius:99px;
-  background:var(--brass-soft);color:var(--brass);border:1px solid var(--brass);white-space:nowrap;
+/* ============ 会籍卡包（Apple Wallet 叠放·点击展开）============ */
+.wallet-stack{display:flex;flex-direction:column;padding-top:6px}
+.wallet-card{
+  position:relative;border-radius:16px;overflow:hidden;
+  background:
+    linear-gradient(155deg, color-mix(in srgb,var(--tint) 30%,var(--surface)) 0%,
+                    var(--surface) 60%);
+  border:1px solid color-mix(in srgb,var(--tint) 45%,var(--line));
+  box-shadow:0 -6px 20px rgba(0,0,0,.30);
+  margin-top:-64px;transition:margin .28s ease,box-shadow .2s ease;
 }
-.prog .pts{display:flex;gap:26px;margin:14px 0 12px}
-.prog .pts .k{font-size:10.5px;color:var(--faint);letter-spacing:.12em}
-.prog .pts .v{font-size:19px}
-.track .cap{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px}
-.track .cap b{color:var(--text);font-weight:500}
-.rail{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
-.rail i{display:block;height:100%;border-radius:99px;background:var(--bc,var(--other))}
-.prog .note{font-size:11px;color:var(--faint);margin-top:8px}
-.prog .prog-actions{position:absolute;top:16px;right:18px;display:flex;gap:6px;opacity:0;transition:opacity .15s}
-.prog:hover .prog-actions,.prog:focus-within .prog-actions{opacity:1}
-.prog .prog-actions button{font-size:11.5px;color:var(--muted);padding:2px 8px;border-radius:6px;background:var(--surface-2)}
-.prog .prog-actions button:hover{color:var(--brass)}
+.wallet-card::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--tint)}
+.wallet-card:first-child{margin-top:0}
+/* 展开的卡、以及紧随其后的那张，都要留出完整间距 */
+.wallet-card.expanded{margin-top:12px;box-shadow:0 10px 30px rgba(0,0,0,.38)}
+.wallet-card.expanded:first-child{margin-top:0}
+.wallet-card.expanded + .wallet-card{margin-top:12px}
+
+.wc-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
+  padding:16px 20px 14px;text-align:left;
+}
+.wc-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.wc-logo{
+  width:34px;height:34px;border-radius:9px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--tint);color:#fff;box-shadow:0 2px 8px color-mix(in srgb,var(--tint) 50%,transparent)}
+.wc-names{display:flex;flex-direction:column;min-width:0}
+.wc-name{font-size:15.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wc-en{font-size:10px;letter-spacing:.16em;color:var(--faint)}
+.wc-tier{
+  font-size:11.5px;letter-spacing:.1em;padding:5px 12px;border-radius:99px;white-space:nowrap;flex:0 0 auto;
+  background:color-mix(in srgb,var(--tint) 22%,transparent);
+  color:color-mix(in srgb,var(--tint) 70%,var(--text));
+  border:1px solid color-mix(in srgb,var(--tint) 45%,transparent);
+}
+.wc-summary{display:flex;gap:22px;padding:0 20px 16px;font-size:12.5px;color:var(--muted)}
+.wc-summary b{color:var(--text);font-weight:600}
+
+/* 展开体：收起时高度归零 */
+.wc-body{
+  max-height:0;opacity:0;overflow:hidden;
+  transition:max-height .3s ease,opacity .25s ease,padding .3s ease;
+  padding:0 20px;
+}
+.wallet-card.expanded .wc-body{max-height:420px;opacity:1;padding:0 20px 18px}
+.wc-track .cap{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:6px}
+.wc-track .cap b{color:var(--text);font-weight:500}
+.wc-track .rail{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.wc-track .rail i{display:block;height:100%;border-radius:99px;background:var(--tint)}
+.wc-note{font-size:11px;color:var(--faint);margin-top:7px}
+.wc-facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:var(--muted);margin-top:12px}
+.wc-facts b{color:var(--text)}
+.wc-certs{display:flex;flex-direction:column;gap:5px;margin-top:12px}
+.wc-cert{font-size:12px;color:var(--text)}
+.wc-cert em{color:var(--faint);font-style:normal;font-size:11px}
+.wc-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.wc-actions button{font-size:12px;color:var(--muted);padding:6px 12px;border-radius:7px;background:var(--surface-2);display:inline-flex;align-items:center;gap:5px}
+.wc-actions button:hover{color:var(--brass)}
+.wc-actions button.del:hover{color:var(--danger)}
 
 /* ============ 到期提醒 ============ */
 .expiry-list{display:flex;flex-direction:column;gap:8px}
@@ -365,8 +401,6 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
   /* 住宿卡：三列网格 → 竖向堆叠，操作按钮常驻（触屏无 hover） */
   .stay-card{grid-template-columns:1fr;gap:8px;padding:14px 16px}
   .stay-card .actions{opacity:1}
-  .prog-actions{opacity:1;position:static;margin-top:10px}
-  .prog .pts{gap:14px;flex-wrap:wrap}
 
   /* 月度柱状图：12 根柱子，收紧间距防溢出 */
   .bars{gap:4px}

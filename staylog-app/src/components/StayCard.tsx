@@ -16,7 +16,7 @@ export default function StayCard({ stay, onEdit, onDelete }: Props) {
   const ci = dayjs(stay.checkIn);
   const co = dayjs(stay.checkOut);
   const nights = nightsOf(stay);
-  const meta = GROUP_META[stay.group];
+  const meta = GROUP_META[stay.group] ?? GROUP_META.other;
   const groupLabel =
     stay.group === "other" ? stay.customGroupName || "其他" : meta.short;
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { useStaylog } from "../store/staylog";
-import ProgramCard from "../components/ProgramCard";
+import WalletCard from "../components/WalletCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import type { LoyaltyGroup, Membership } from "../types";
 import { GROUP_META, GROUP_TIERS } from "../types";
@@ -37,12 +37,14 @@ export default function Programs() {
   const [editing, setEditing] = useState<Membership | null>(null);
   const [form, setForm] = useState<Membership>(blankMembership());
   const [deleting, setDeleting] = useState<Membership | null>(null);
+  // 卡包手风琴：单开，默认展开第一张
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const expiries = useMemo<ExpiryEntry[]>(() => {
     const now = dayjs();
     const out: ExpiryEntry[] = [];
     for (const m of memberships) {
-      const name = m.group === "other" ? m.customName || "其他" : GROUP_META[m.group].name;
+      const name = m.group === "other" ? m.customName || "其他" : GROUP_META[m.group]?.name || "其他";
       if (m.tierExpiry) {
         out.push({ label: `${m.tier} 等级到期`, date: m.tierExpiry, days: dayjs(m.tierExpiry).diff(now, "day"), groupName: name });
       }
@@ -111,11 +113,16 @@ export default function Programs() {
           </div>
         </div>
       ) : (
-        <div className="programs-grid">
-          {memberships.map((m) => (
-            <ProgramCard key={m.id} membership={m} stays={stays}
-              onEdit={openEdit} onDelete={(x) => setDeleting(x)} />
-          ))}
+        <div className="wallet-stack">
+          {memberships.map((m) => {
+            const effectiveExpanded = expandedId ?? memberships[0]?.id;
+            return (
+              <WalletCard key={m.id} membership={m} stays={stays}
+                expanded={effectiveExpanded === m.id}
+                onToggle={() => setExpandedId((cur) => ((cur ?? memberships[0]?.id) === m.id ? "" : m.id))}
+                onEdit={openEdit} onDelete={(x) => setDeleting(x)} />
+            );
+          })}
         </div>
       )}
 
@@ -266,7 +273,7 @@ export default function Programs() {
       <ConfirmDialog
         open={!!deleting}
         title="删除这个常旅客计划？"
-        body={deleting ? `${deleting.group === "other" ? deleting.customName : GROUP_META[deleting.group].name} 的会籍信息将被删除（住宿记录不受影响）。` : ""}
+        body={deleting ? `${deleting.group === "other" ? deleting.customName : GROUP_META[deleting.group]?.name || "其他"} 的会籍信息将被删除（住宿记录不受影响）。` : ""}
         confirmLabel="删除"
         danger
         onConfirm={() => { if (deleting) removeMembership(deleting.id); setDeleting(null); }}

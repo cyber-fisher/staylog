@@ -5,48 +5,36 @@ import type { Feature, FeatureCollection, Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStaylog } from "../store/staylog";
 import { aggregateCities, aggregateHotels, distanceKm } from "../lib/stats";
-import { wgs84ToGcj02, inChina } from "../lib/amap";
+import { wgs84ToGcj02 } from "../lib/amap";
 import { GROUP_META, type LoyaltyGroup } from "../types";
 import EmptyState from "../components/EmptyState";
 
-// 双栅格底图，按缩放/位置切换：
-// - darkgray：ESRI Dark Gray（天然深色，任何缩放不空白，无需反相），用于世界/大区/海外
-// - amap：高德街道图（GCJ-02，中文地名，国内极快），用于国内城市放大
-// 坐标自洽：amap 下标记 WGS→GCJ 对齐；darkgray 下 GCJ 转换是恒等变换（=WGS），对齐 ESRI。
+// 单一高德栅格底图（style=7 街道图，GCJ-02，中文地名，国内极快）。
+// 之前的 ESRI 深灰 + 双底图切换全部移除——ESRI/demotiles 字体都是海外托管，
+// 国内连不通导致底图空白、聚合数字不显示，是"足迹不显示"的根因之一。
+// 标记坐标统一 WGS-84 存库，显示时 wgs84ToGcj02 投到高德底图（境外为恒等变换）。
 const AMAP_TILES = [1, 2, 3, 4].map(
   (n) => `https://webst0${n}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}`
 );
-const ESRI_DARK = ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"];
-const ESRI_DARK_REF = ["https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"];
 
 // 集团配色（硬编码 hex，与 src/styles/tokens.css 的 --hilton 等保持同步；
-// MapLibre paint 表达式读不了 CSS 变量，故此处独立维护一份暗色系 hex）。
+// MapLibre paint 表达式读不了 CSS 变量，故此处独立维护一份）。
 const GROUP_HEX: Record<LoyaltyGroup, string> = {
   hilton: "#3f76d4",
-  marriott: "#b0453f",
-  ihg: "#8a5fc0",
-  hyatt: "#4d9e8a",
   huazhu: "#d97544",
   other: "#d4a853", // 黄铜 --brass
 };
 const BRASS = "#d4a853";
 
-type BaseMode = "amap" | "darkgray";
-
 function buildStyle(): maplibregl.StyleSpecification {
   return {
     version: 8,
-    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+    // 自托管字形（聚合数字文字层需要）：public/font/ 下相对路径，国内可达、离线可用
+    glyphs: "/font/{fontstack}/{range}.pbf",
     sources: {
       amap: { type: "raster", tiles: AMAP_TILES, tileSize: 256, maxzoom: 18, attribution: "© 高德地图" },
-      esriDark: { type: "raster", tiles: ESRI_DARK, tileSize: 256, maxzoom: 16, attribution: "© Esri" },
-      esriDarkRef: { type: "raster", tiles: ESRI_DARK_REF, tileSize: 256, maxzoom: 16 },
     },
-    layers: [
-      { id: "amap", type: "raster", source: "amap", layout: { visibility: "none" } },
-      { id: "esri-dark", type: "raster", source: "esriDark", layout: { visibility: "visible" } },
-      { id: "esri-dark-ref", type: "raster", source: "esriDarkRef", layout: { visibility: "visible" } },
-    ],
+    layers: [{ id: "amap", type: "raster", source: "amap" }],
   };
 }
 
@@ -62,7 +50,6 @@ export default function MapPage() {
 
   const mapRef = useRef<maplibregl.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const modeRef = useRef<BaseMode>("darkgray");
 
   const hotels = useMemo(() => aggregateHotels(stays).filter((h) => h.lat != null), [stays]);
   const hotelsRef = useRef(hotels);
@@ -83,12 +70,12 @@ export default function MapPage() {
     return best;
   }, [located, homeBase]);
 
-  // 按当前底图把 WGS-84 坐标转成显示坐标（amap→GCJ-02；darkgray 不变）
+  // WGS-84 → 高德显示坐标（境外恒等，境内对齐高德底图）
   function project(lng: number, lat: number): [number, number] {
-    return modeRef.current === "amap" ? wgs84ToGcj02(lng, lat) : [lng, lat];
+    return wgs84ToGcj02(lng, lat);
   }
 
-  // 用当前底图基准构建酒店 GeoJSON（供聚合 source）
+  // 酒店 GeoJSON（供聚合 source）
   function buildHotelFC(): FeatureCollection {
     return {
       type: "FeatureCollection",
@@ -108,24 +95,6 @@ export default function MapPage() {
         } as Feature;
       }),
     };
-  }
-
-  // 依据视区中心与缩放决定底图：国内城市级用高德街道，否则深灰
-  function desiredMode(): BaseMode {
-    const map = mapRef.current!;
-    const c = map.getCenter();
-    return inChina(c.lng, c.lat) && map.getZoom() >= 6 ? "amap" : "darkgray";
-  }
-
-  function applyMode(next: BaseMode) {
-    const map = mapRef.current;
-    if (!map || modeRef.current === next) return;
-    modeRef.current = next;
-    map.setLayoutProperty("amap", "visibility", next === "amap" ? "visible" : "none");
-    map.setLayoutProperty("esri-dark", "visibility", next === "amap" ? "none" : "visible");
-    map.setLayoutProperty("esri-dark-ref", "visibility", next === "amap" ? "none" : "visible");
-    // 底图基准变了，用新基准重建标记（境外 GCJ=WGS 无跳动，境内重新对齐）
-    (map.getSource("hotels") as maplibregl.GeoJSONSource | undefined)?.setData(buildHotelFC());
   }
 
   function addMarkerLayers() {
@@ -196,11 +165,8 @@ export default function MapPage() {
     return [
       "match", ["get", "group"],
       "hilton", GROUP_HEX.hilton,
-      "marriott", GROUP_HEX.marriott,
-      "ihg", GROUP_HEX.ihg,
-      "hyatt", GROUP_HEX.hyatt,
       "huazhu", GROUP_HEX.huazhu,
-      BRASS, // 默认（other 及未知）
+      BRASS, // 默认（other 及未知/旧集团）
     ];
   }
 
@@ -209,13 +175,12 @@ export default function MapPage() {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: buildStyle(),
-      center: [105, 30],
-      zoom: 1.8,
+      center: [105, 35],
+      zoom: 3.6,
       attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
-    modeRef.current = "darkgray"; // 初始世界视图 = 深灰
 
     map.on("load", () => {
       addMarkerLayers();
@@ -223,7 +188,7 @@ export default function MapPage() {
       if (h.length > 1) {
         const bounds = new maplibregl.LngLatBounds();
         h.forEach((x) => bounds.extend(project(x.lng!, x.lat!)));
-        map.fitBounds(bounds, { padding: 80, maxZoom: 6, duration: 0 });
+        map.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 0 });
       } else if (h.length === 1) {
         map.jumpTo({ center: project(h[0].lng!, h[0].lat!), zoom: 11 });
       }
@@ -260,8 +225,6 @@ export default function MapPage() {
       }
     });
 
-    map.on("moveend", () => applyMode(desiredMode()));
-
     // popup 里的"查看入住记录"按钮在 React 树外，用容器事件委托桥接到路由
     const container = map.getContainer();
     const onDelegatedClick = (e: MouseEvent) => {
@@ -278,7 +241,7 @@ export default function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stays.length === 0]);
 
-  // 酒店数据变化 → 用当前基准重建 source
+  // 酒店数据变化 → 重建 source
   useEffect(() => {
     const map = mapRef.current;
     const src = map?.getSource("hotels") as maplibregl.GeoJSONSource | undefined;
@@ -299,9 +262,9 @@ export default function MapPage() {
     if (h.length > 1) {
       const bounds = new maplibregl.LngLatBounds();
       h.forEach((x) => bounds.extend(project(x.lng!, x.lat!)));
-      map.fitBounds(bounds, { padding: 80, maxZoom: 6, duration: 800 });
+      map.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 800 });
     } else {
-      map.flyTo({ center: [105, 30], zoom: 1.8, duration: 800 });
+      map.flyTo({ center: [105, 35], zoom: 3.6, duration: 800 });
     }
   }
 
@@ -332,7 +295,7 @@ export default function MapPage() {
         </aside>
         <div className="map-main">
           <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
-          <button className="map-reset-btn" onClick={resetView} title="重置到全球视图">
+          <button className="map-reset-btn" onClick={resetView} title="重置到全国视图">
             重置视图
           </button>
           <div className="map-statbar">

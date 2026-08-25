@@ -24,7 +24,7 @@ export default function Stats() {
     const byGroup = nightsByGroup(stays);
     return Object.entries(byGroup)
       .map(([g, nights]) => ({
-        name: g === "other" ? "其他" : GROUP_META[g as LoyaltyGroup].name,
+        name: g === "other" ? "其他" : GROUP_META[g as LoyaltyGroup]?.name || "其他",
         nights,
         color: cssVar(GROUP_META[g as LoyaltyGroup]?.cssVar || "--other"),
       }))

@@ -21,7 +21,7 @@ export default function Wrapped() {
     if (!top) return null;
     const s = inYear.find((x) => x.group === top[0]);
     return {
-      name: top[0] === "other" ? s?.customGroupName || "其他" : GROUP_META[top[0] as LoyaltyGroup].name,
+      name: top[0] === "other" ? s?.customGroupName || "其他" : GROUP_META[top[0] as LoyaltyGroup]?.name || "其他",
       nights: top[1],
     };
   }, [inYear]);

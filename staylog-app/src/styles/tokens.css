@@ -15,9 +15,6 @@
   --map-dot:#2c3a5c;
   --map-glow:rgba(212,168,83,.35);
   --hilton:#3f76d4;
-  --marriott:#b0453f;
-  --ihg:#8a5fc0;
-  --hyatt:#4d9e8a;
   --huazhu:#d97544;
   --other:#7a8499;
   --shadow:0 10px 30px rgba(0,0,0,.35);
@@ -29,7 +26,7 @@
     --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
     --good:#2b9463; --warn:#a4791f; --danger:#bf4040;
     --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
-    --hilton:#2a5cb8; --marriott:#9c3832; --ihg:#7346ab; --hyatt:#33806d; --huazhu:#c25c2d; --other:#6b7386;
+    --hilton:#2a5cb8; --huazhu:#c25c2d; --other:#6b7386;
     --shadow:0 8px 24px rgba(60,55,40,.12);
   }
 }
@@ -39,7 +36,7 @@
   --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
   --good:#2b9463; --warn:#a4791f; --danger:#bf4040;
   --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
-  --hilton:#2a5cb8; --marriott:#9c3832; --ihg:#7346ab; --hyatt:#33806d; --huazhu:#c25c2d; --other:#6b7386;
+  --hilton:#2a5cb8; --huazhu:#c25c2d; --other:#6b7386;
   --shadow:0 8px 24px rgba(60,55,40,.12);
 }
 
@@ -84,8 +81,7 @@ a{color:inherit}
   font-size:10.5px;letter-spacing:.08em;padding:2px 9px;border-radius:99px;
   border:1px solid var(--bc,var(--line));color:var(--bc,var(--muted));
 }
-.b-hilton{--bc:var(--hilton)} .b-marriott{--bc:var(--marriott)}
-.b-ihg{--bc:var(--ihg)} .b-hyatt{--bc:var(--hyatt)} .b-huazhu{--bc:var(--huazhu)} .b-other{--bc:var(--other)}
+.b-hilton{--bc:var(--hilton)} .b-huazhu{--bc:var(--huazhu)} .b-other{--bc:var(--other)}
 
 .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
 .sec-head h2{font-size:21px;font-weight:600;letter-spacing:.04em}
