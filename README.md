@@ -9,7 +9,7 @@
 - **常旅客计划** — 希尔顿、万豪、IHG、凯悦、华住会五大集团，定级进度自动累计、到期券提醒
 - **足迹地图** — MapLibre GL 栅格底图，国内用高德街道图（中文地名），海外自动切 ESRI 卫星影像，酒店标记按晚数缩放
 - **统计分析 + 年度总结** — Flighty 风格的 Wrapped 卡片流
-- **多用户 + 权限** — 支持多账号自助注册，数据按用户隔离，高德 Key 等系统设置仅管理员可访问
+- **多用户 + 云同步** — 邮箱密码登录，数据库行级安全真隔离；跨设备同步，离线可用联网补传；高德 Key 等系统设置仅管理员可访问
 - **酒店自动匹配** — 输入酒店名自动识别集团/子品牌（离线），填了高德 Key 后还能自动补全城市与坐标（在线）
 
 ## 项目结构
@@ -36,15 +36,23 @@ npm run dev            # http://localhost:5173
 
 1. Vercel 控制台 → Add New → Project → 从 GitHub 导入 `cyber-fisher/staylog`
 2. 在配置页把 **Root Directory** 改成 `staylog-app`（这一步不能省）
-3. 其余保持默认（`vercel.json` 已提交，会自动生效——包含 SPA 路由重写，避免刷新 `/stays` 等深链 404）
-4. Deploy
+3. **配置环境变量**（Settings → Environment Variables，勾选 Production + Preview + Development）：
+   - `VITE_SUPABASE_URL` — Supabase 项目的 Project URL
+   - `VITE_SUPABASE_ANON_KEY` — Supabase 的 anon public key（可安全暴露在前端，RLS 才是安全边界）
 
-无需配置任何环境变量。高德 Key 是运行时由每个用户在应用内输入并存自己的浏览器 localStorage，不入库、不上传。
+   ⚠️ `VITE_` 变量是**构建期**注入的，必须在部署前配好；修改后需重新部署才生效。
+4. 其余保持默认（`vercel.json` 已提交，会自动生效——包含 SPA 路由重写，避免刷新 `/stays` 等深链 404）
+5. Deploy
+
+高德 Key 不是环境变量，而是运行时由每个用户在应用内输入，存自己的云端 profile。
 
 ## 技术栈
 
-Vite 6 · React 18 · TypeScript · React Router v7 · zustand（含 localStorage 持久化） · MapLibre GL · Recharts · dayjs
+Vite 6 · React 18 · TypeScript · React Router v7 · zustand（本地缓存持久化） · Supabase（Postgres + Auth，云端同步） · MapLibre GL · Recharts · dayjs
 
-## 安全边界
+## 数据与同步
 
-多用户与登录是**纯前端门禁**：能防误操作和随手访问，但技术用户可通过浏览器开发者工具查看/修改本地数据。数据只在当前浏览器，不跨设备同步。如需真实安全隔离，需要引入后端与数据库。
+- **后端**：Supabase（托管 Postgres + Auth）。邮箱 + 密码登录，首个注册账号为管理员。
+- **同步策略**：离线优先。写入先落本地 localStorage 即时生效，再后台上传云端；读取本地秒开，聚焦/联网时后台对账合并（最后写入优先，软删墓碑防误删复活）。断网可照常记录，联网自动补传。
+- **安全隔离**：数据库行级安全（RLS）强制每个用户只能读写自己的行，是真实隔离，非前端门禁。anon key 暴露在前端是安全的。
+- 数据库表结构与 RLS 策略的建表 SQL 见提交历史/项目文档。

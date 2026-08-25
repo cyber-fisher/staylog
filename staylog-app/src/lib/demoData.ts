@@ -67,7 +67,8 @@ export const demoStays: Stay[] = [
     rate: 320, currency: "CNY", pointsEarned: 640, rating: 3.5, tags: ["出差"] },
 ];
 
-export const demoMemberships: Membership[] = [
+// 会籍模板不含 id：loadDemo 载入时会为每条生成新 uuid（云端主键）
+export const demoMemberships: Omit<Membership, "id">[] = [
   { group: "hilton", tier: "钻石会员 DIAMOND", pointsBalance: 286540,
     tierExpiry: "2027-03-31", targetTier: "钻石续级", targetNights: 60, bonusNights: 20,
     certificates: [] },

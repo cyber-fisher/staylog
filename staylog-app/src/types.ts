@@ -24,6 +24,8 @@ export interface Stay {
   rating?: number;
   notes?: string;
   tags?: string[];
+  /** 云同步用：最后修改时间（ISO），做最后写入优先合并 */
+  updatedAt?: string;
 }
 
 export interface Certificate {
@@ -32,6 +34,8 @@ export interface Certificate {
 }
 
 export interface Membership {
+  /** 稳定主键（云同步需要；旧数据在 store migrate 时补齐） */
+  id: string;
   group: LoyaltyGroup;
   /** group === "other" 时的显示名 */
   customName?: string;
@@ -45,6 +49,8 @@ export interface Membership {
   targetNights: number;
   bonusNights: number;
   certificates: Certificate[];
+  /** 云同步用：最后修改时间（ISO），做最后写入优先合并 */
+  updatedAt?: string;
 }
 
 export interface BackupFile {

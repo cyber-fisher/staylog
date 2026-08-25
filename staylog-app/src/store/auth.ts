@@ -1,85 +1,121 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { sha256 } from "../lib/hash";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
+import { fetchProfile } from "../lib/sync";
 
 export type Role = "admin" | "user";
 
-export interface Account {
+export interface Profile {
   id: string;
   username: string;
-  passwordHash: string;
   role: Role;
-  createdAt: string;
 }
+
+type Status = "loading" | "authed" | "anon";
 
 interface AuthState {
-  accounts: Account[];
-  /** 当前登录用户 id，未登录为 null */
-  currentUserId: string | null;
-  register: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  login: (username: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  logout: () => void;
-  /** 管理员删除某账号（同时清其数据由调用方处理） */
-  removeAccount: (id: string) => void;
+  session: Session | null;
+  profile: Profile | null;
+  /** loading=会话恢复中；authed=已登录；anon=未登录 */
+  status: Status;
+  /** 挂载时调用一次：恢复会话 + 订阅登录态变化 */
+  init: () => void;
+  register: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  /** 供 store 在拉到 profile 后回填 amapKey 用 */
+  _loadProfile: (userId: string) => Promise<{ amapKey: string } | null>;
 }
 
-// 加盐：用户名参与哈希，避免相同密码得到相同散列
-function saltedInput(username: string, password: string): string {
-  return `staylog:${username.toLowerCase()}:${password}`;
+/** 把 Supabase 英文错误映射成中文提示 */
+function zhAuthError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login credentials")) return "邮箱或密码错误";
+  if (m.includes("user already registered") || m.includes("already been registered")) return "该邮箱已注册，请直接登录";
+  if (m.includes("password should be at least")) return "密码至少 6 位";
+  if (m.includes("unable to validate email") || m.includes("invalid email")) return "邮箱格式不正确";
+  if (m.includes("email not confirmed")) return "邮箱未验证（请在 Supabase 关闭邮箱验证，或去邮箱确认）";
+  if (m.includes("network") || m.includes("fetch")) return "网络错误，请检查网络后重试";
+  return msg;
 }
 
-export const useAuth = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      accounts: [],
-      currentUserId: null,
+// 模块级 guard：防 React StrictMode 下 init 重复订阅
+let subscribed = false;
 
-      register: async (username, password) => {
-        const name = username.trim();
-        if (name.length < 2) return { ok: false, error: "用户名至少 2 个字符" };
-        if (password.length < 4) return { ok: false, error: "密码至少 4 位" };
-        const accounts = get().accounts;
-        if (accounts.some((a) => a.username.toLowerCase() === name.toLowerCase())) {
-          return { ok: false, error: "该用户名已被注册" };
-        }
-        const passwordHash = await sha256(saltedInput(name, password));
-        const account: Account = {
-          id: crypto.randomUUID(),
-          username: name,
-          passwordHash,
-          // 第一个注册的用户自动成为管理员
-          role: accounts.length === 0 ? "admin" : "user",
-          createdAt: new Date().toISOString(),
-        };
-        set({ accounts: [...accounts, account], currentUserId: account.id });
-        return { ok: true };
-      },
+export const useAuth = create<AuthState>()((set) => ({
+  session: null,
+  profile: null,
+  status: "loading",
 
-      login: async (username, password) => {
-        const name = username.trim();
-        const account = get().accounts.find(
-          (a) => a.username.toLowerCase() === name.toLowerCase()
-        );
-        if (!account) return { ok: false, error: "用户名不存在" };
-        const hash = await sha256(saltedInput(name, password));
-        if (hash !== account.passwordHash) return { ok: false, error: "密码错误" };
-        set({ currentUserId: account.id });
-        return { ok: true };
-      },
+  init: () => {
+    if (subscribed) return;
+    subscribed = true;
 
-      logout: () => set({ currentUserId: null }),
+    supabase.auth.getSession().then(async ({ data }) => {
+      const session = data.session;
+      if (session) {
+        const profile = await loadProfileInto(session);
+        set({ session, profile, status: "authed" });
+      } else {
+        set({ session: null, profile: null, status: "anon" });
+      }
+    });
 
-      removeAccount: (id) =>
-        set((s) => ({
-          accounts: s.accounts.filter((a) => a.id !== id),
-          currentUserId: s.currentUserId === id ? null : s.currentUserId,
-        })),
-    }),
-    { name: "staylog-auth" }
-  )
-);
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const profile = await loadProfileInto(session);
+        set({ session, profile, status: "authed" });
+      } else {
+        set({ session: null, profile: null, status: "anon" });
+      }
+    });
+  },
 
-/** 便捷选择器 */
-export function useCurrentUser(): Account | null {
-  return useAuth((s) => s.accounts.find((a) => a.id === s.currentUserId) || null);
+  register: async (email, password) => {
+    const username = email.trim().split("@")[0] || email.trim();
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { username } },
+    });
+    if (error) return { ok: false, error: zhAuthError(error.message) };
+    // 关闭邮箱验证后 signUp 直接带回 session，onAuthStateChange 会接管
+    return { ok: true };
+  },
+
+  login: async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) return { ok: false, error: zhAuthError(error.message) };
+    return { ok: true };
+  },
+
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({ session: null, profile: null, status: "anon" });
+  },
+
+  _loadProfile: async (userId) => {
+    const p = await fetchProfile(userId);
+    if (!p) return null;
+    set({ profile: { id: p.id, username: p.username || "用户", role: p.role } });
+    return { amapKey: p.amap_key || "" };
+  },
+}));
+
+/** 拉 profile 并回填到 auth state；返回 Profile。amapKey 的回填由 staylog store 监听会话变化处理。 */
+async function loadProfileInto(session: Session): Promise<Profile | null> {
+  try {
+    const p = await fetchProfile(session.user.id);
+    if (p) return { id: p.id, username: p.username || "用户", role: p.role };
+  } catch (e) {
+    console.warn("[auth] 拉取 profile 失败:", e);
+  }
+  // profile 尚未就绪（触发器延迟）时的兜底：用邮箱本地部分
+  const fallbackName = session.user.email?.split("@")[0] || "用户";
+  return { id: session.user.id, username: fallbackName, role: "user" };
+}
+
+/** 当前登录用户（兼容旧消费点的 {id, username, role} 形状），未登录为 null */
+export function useCurrentUser(): Profile | null {
+  return useAuth((s) => s.profile);
 }

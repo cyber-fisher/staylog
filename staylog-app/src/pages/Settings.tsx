@@ -43,7 +43,7 @@ export default function Settings() {
       <div className="page-head">
         <div>
           <h1 className="serif">数据管理</h1>
-          <div className="sub">当前 {stays.length} 条住宿记录 · {memberships.length} 个常旅客计划 · 数据仅保存在此浏览器</div>
+          <div className="sub">当前 {stays.length} 条住宿记录 · {memberships.length} 个常旅客计划 · 已启用云端同步（本地缓存 + 云端备份）</div>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ export default function Settings() {
 
       <div className="card settings-block">
         <h3>备份与恢复</h3>
-        <p>数据存在浏览器 localStorage 中，清除浏览器数据会丢失记录。建议定期导出 JSON 备份；换浏览器或设备时用导入恢复。</p>
+        <p>数据已自动云端同步，可跨设备访问。导出 JSON 仍可用于离线备份或迁移到其他工具；换设备时登录同一账号即可恢复。</p>
         <div className="row">
           <button className="btn btn-primary" onClick={() => exportBackup(stays, memberships)}>
             <IconDownload width={14} height={14} /> 导出备份 JSON

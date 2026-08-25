@@ -5,6 +5,7 @@ import Stays from "./pages/Stays";
 import Programs from "./pages/Programs";
 import Settings from "./pages/Settings";
 import LoginGate from "./pages/LoginGate";
+import ConfirmDialog from "./components/ConfirmDialog";
 import { useAuth, useCurrentUser } from "./store/auth";
 import { useStaylog } from "./store/staylog";
 import {
@@ -36,20 +37,80 @@ export default function App() {
     setTheme((t) => (t === "system" ? "dark" : t === "dark" ? "light" : "system"));
 
   const currentUser = useCurrentUser();
+  const status = useAuth((s) => s.status);
+  const init = useAuth((s) => s.init);
   const logout = useAuth((s) => s.logout);
   const setActiveUser = useStaylog((s) => s.setActiveUser);
+  const reconcileActive = useStaylog((s) => s.reconcileActive);
 
-  // 登录用户变化时，切换 staylog 数据到该用户的隔离空间
+  // 挂载时恢复会话 + 订阅登录态
   useEffect(() => {
-    setActiveUser(currentUser?.id ?? null);
-  }, [currentUser?.id, setActiveUser]);
+    init();
+  }, [init]);
+
+  const [migrateAsk, setMigrateAsk] = useState<{ stays: number; memberships: number } | null>(null);
+
+  // 登录用户变化时：切到该用户的隔离空间，并拉云端对账
+  useEffect(() => {
+    const uid = currentUser?.id ?? null;
+    setActiveUser(uid);
+    if (!uid) return;
+    let cancelled = false;
+    (async () => {
+      const localBefore = useStaylog.getState();
+      const localHasData = localBefore.stays.length > 0 || localBefore.memberships.length > 0;
+      const cloudWasEmpty = await reconcileActive();
+      if (cancelled) return;
+      // Phase 7：首次登录且云端为空、本地有数据 → 询问是否上传旧数据
+      const migratedFlag = `staylog-migrated:${uid}`;
+      if (cloudWasEmpty && localHasData && !localStorage.getItem(migratedFlag)) {
+        setMigrateAsk({ stays: localBefore.stays.length, memberships: localBefore.memberships.length });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, setActiveUser, reconcileActive]);
+
+  // focus / 恢复联网时重新对账（替代 realtime）
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const refetch = () => void reconcileActive();
+    window.addEventListener("focus", refetch);
+    window.addEventListener("online", refetch);
+    return () => {
+      window.removeEventListener("focus", refetch);
+      window.removeEventListener("online", refetch);
+    };
+  }, [currentUser?.id, reconcileActive]);
+
+  function confirmMigrate() {
+    const s = useStaylog.getState();
+    // 把当前本地数据重新走 importData 上传（会补 id、盖 updatedAt、软删云端旧数据后上传）
+    s.importData(s.stays, s.memberships);
+    if (currentUser?.id) localStorage.setItem(`staylog-migrated:${currentUser.id}`, "1");
+    setMigrateAsk(null);
+  }
+  function dismissMigrate() {
+    if (currentUser?.id) localStorage.setItem(`staylog-migrated:${currentUser.id}`, "1");
+    setMigrateAsk(null);
+  }
 
   const location = useLocation();
   const isWrapped = location.pathname.startsWith("/stats/wrapped");
   const isAdmin = currentUser?.role === "admin";
 
+  // 会话恢复中 → 轻量占位，避免刷新时闪一下登录页
+  if (status === "loading") {
+    return (
+      <div className="shell">
+        <main className="page"><div style={{ color: "var(--faint)", padding: 40 }}>加载中…</div></main>
+      </div>
+    );
+  }
+
   // 未登录 → 登录门禁
-  if (!currentUser) {
+  if (status === "anon" || !currentUser) {
     return (
       <div className="shell">
         <LoginGate />
@@ -103,6 +164,15 @@ export default function App() {
           <Route path="/settings" element={isAdmin ? <Settings /> : <AccessDenied />} />
         </Routes>
       </Suspense>
+
+      <ConfirmDialog
+        open={!!migrateAsk}
+        title="检测到本机旧数据"
+        body={migrateAsk ? `本浏览器有 ${migrateAsk.stays} 条住宿记录、${migrateAsk.memberships} 个会籍尚未上云。是否上传到当前账号？（云端此账号目前为空）` : ""}
+        confirmLabel="上传到云端"
+        onConfirm={confirmMigrate}
+        onCancel={dismissMigrate}
+      />
     </div>
   );
 }

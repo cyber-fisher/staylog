@@ -16,6 +16,7 @@ interface ExpiryEntry {
 
 function blankMembership(): Membership {
   return {
+    id: crypto.randomUUID(),
     group: "hilton",
     tier: "",
     pointsBalance: 0,
@@ -111,7 +112,7 @@ export default function Programs() {
       ) : (
         <div className="programs-grid">
           {memberships.map((m) => (
-            <ProgramCard key={`${m.group}:${m.customName || ""}`} membership={m} stays={stays}
+            <ProgramCard key={m.id} membership={m} stays={stays}
               onEdit={openEdit} onDelete={(x) => setDeleting(x)} />
           ))}
         </div>
@@ -235,7 +236,7 @@ export default function Programs() {
         body={deleting ? `${deleting.group === "other" ? deleting.customName : GROUP_META[deleting.group].name} 的会籍信息将被删除（住宿记录不受影响）。` : ""}
         confirmLabel="删除"
         danger
-        onConfirm={() => { if (deleting) removeMembership(deleting.group, deleting.customName); setDeleting(null); }}
+        onConfirm={() => { if (deleting) removeMembership(deleting.id); setDeleting(null); }}
         onCancel={() => setDeleting(null)}
       />
     </main>
