@@ -5,6 +5,13 @@
  * 免费 key：https://lbs.amap.com 注册应用 → Web服务 类型。
  */
 
+/**
+ * 全局高德 Web 服务 key，由部署方通过环境变量 VITE_AMAP_KEY 提供，所有用户共享。
+ * 构建期注入；未配置则为空字符串（此时仅离线品牌识别可用）。
+ * 注意：VITE_ 变量会打包进前端，技术用户仍可从浏览器取得——这是高德浏览器直调的固有限制。
+ */
+export const AMAP_KEY = ((import.meta.env.VITE_AMAP_KEY as string | undefined) || "").trim();
+
 export interface AmapPoi {
   name: string;
   /** 已转换为 WGS-84 */

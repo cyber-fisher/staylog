@@ -23,8 +23,6 @@ interface AuthState {
   register: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
-  /** 供 store 在拉到 profile 后回填 amapKey 用 */
-  _loadProfile: (userId: string) => Promise<{ amapKey: string } | null>;
 }
 
 /** 把 Supabase 英文错误映射成中文提示 */
@@ -92,13 +90,6 @@ export const useAuth = create<AuthState>()((set) => ({
   logout: async () => {
     await supabase.auth.signOut();
     set({ session: null, profile: null, status: "anon" });
-  },
-
-  _loadProfile: async (userId) => {
-    const p = await fetchProfile(userId);
-    if (!p) return null;
-    set({ profile: { id: p.id, username: p.username || "用户", role: p.role } });
-    return { amapKey: p.amap_key || "" };
   },
 }));
 

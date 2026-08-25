@@ -8,18 +8,15 @@ import {
   reconcile,
   stayToRow,
   membershipToRow,
-  pushAmapKey,
 } from "../lib/sync";
 
 /** 单个用户的全部数据 */
 interface UserData {
   stays: Stay[];
   memberships: Membership[];
-  /** 高德 Web 服务 key（每个用户独立；云端存 profiles.amap_key） */
-  amapKey: string;
 }
 
-const EMPTY: UserData = { stays: [], memberships: [], amapKey: "" };
+const EMPTY: UserData = { stays: [], memberships: [] };
 
 function nowIso() {
   return new Date().toISOString();
@@ -34,7 +31,6 @@ interface StaylogState {
   // ---- 当前用户视图（派生字段）----
   stays: Stay[];
   memberships: Membership[];
-  amapKey: string;
   // ---- actions ----
   setActiveUser: (userId: string | null) => void;
   addStay: (stay: Stay) => void;
@@ -42,13 +38,12 @@ interface StaylogState {
   removeStay: (id: string) => void;
   upsertMembership: (m: Membership) => void;
   removeMembership: (id: string) => void;
-  setAmapKey: (key: string) => void;
   loadDemo: () => void;
   clearAll: () => void;
   importData: (stays: Stay[], memberships: Membership[]) => void;
   purgeUser: (userId: string) => void;
   /** 用云端数据覆盖当前用户视图（reconcile 后调用） */
-  hydrateActive: (stays: Stay[], memberships: Membership[], amapKey?: string) => void;
+  hydrateActive: (stays: Stay[], memberships: Membership[]) => void;
   /** 拉云端并与本地 LWW 合并；返回云端是否本来为空（供迁移判断） */
   reconcileActive: () => Promise<boolean>;
 }
@@ -62,7 +57,6 @@ function applyToActive(s: StaylogState, fn: (d: UserData) => UserData): Partial<
     byUser: { ...s.byUser, [s.activeUserId]: next },
     stays: next.stays,
     memberships: next.memberships,
-    amapKey: next.amapKey,
   };
 }
 
@@ -99,7 +93,6 @@ export const useStaylog = create<StaylogState>()(
       activeUserId: null,
       stays: [],
       memberships: [],
-      amapKey: "",
 
       setActiveUser: (userId) =>
         set((s) => {
@@ -108,7 +101,6 @@ export const useStaylog = create<StaylogState>()(
             activeUserId: userId,
             stays: data.stays,
             memberships: data.memberships,
-            amapKey: data.amapKey,
           };
         }),
 
@@ -169,13 +161,6 @@ export const useStaylog = create<StaylogState>()(
         if (uid) queueMembershipDelete(uid, id);
       },
 
-      setAmapKey: (key) => {
-        const uid = get().activeUserId;
-        const trimmed = key.trim();
-        set((s) => applyToActive(s, (d) => ({ ...d, amapKey: trimmed })));
-        if (uid) void pushAmapKey(uid, trimmed);
-      },
-
       loadDemo: () => {
         const uid = get().activeUserId;
         // 重新生成 uuid：demo 的 d01 等不是合法 uuid，云端插入会失败
@@ -183,7 +168,7 @@ export const useStaylog = create<StaylogState>()(
         const memberships: Membership[] = demoMemberships.map((m) => ({ ...m, id: uuid(), updatedAt: nowIso() }));
         // 先软删云端现有数据，再上传新集
         const prev = get();
-        set((s) => applyToActive(s, (d) => ({ stays, memberships, amapKey: d.amapKey })));
+        set((s) => applyToActive(s, () => ({ stays, memberships })));
         if (uid) {
           prev.stays.forEach((st) => queueStayDelete(uid, st.id));
           prev.memberships.forEach((m) => queueMembershipDelete(uid, m.id));
@@ -195,7 +180,7 @@ export const useStaylog = create<StaylogState>()(
       clearAll: () => {
         const uid = get().activeUserId;
         const prev = get();
-        set((s) => applyToActive(s, (d) => ({ ...EMPTY, amapKey: d.amapKey })));
+        set((s) => applyToActive(s, () => ({ ...EMPTY })));
         if (uid) {
           prev.stays.forEach((st) => queueStayDelete(uid, st.id));
           prev.memberships.forEach((m) => queueMembershipDelete(uid, m.id));
@@ -224,18 +209,12 @@ export const useStaylog = create<StaylogState>()(
           const clearView = s.activeUserId === userId;
           return {
             byUser: next,
-            ...(clearView ? { activeUserId: null, stays: [], memberships: [], amapKey: "" } : {}),
+            ...(clearView ? { activeUserId: null, stays: [], memberships: [] } : {}),
           };
         }),
 
-      hydrateActive: (stays, memberships, amapKey) =>
-        set((s) =>
-          applyToActive(s, (d) => ({
-            stays,
-            memberships,
-            amapKey: amapKey !== undefined ? amapKey : d.amapKey,
-          }))
-        ),
+      hydrateActive: (stays, memberships) =>
+        set((s) => applyToActive(s, () => ({ stays, memberships }))),
 
       reconcileActive: async () => {
         const { activeUserId, stays, memberships } = get();
@@ -274,7 +253,6 @@ export const useStaylog = create<StaylogState>()(
         const data = (state.activeUserId && state.byUser[state.activeUserId]) || EMPTY;
         state.stays = data.stays;
         state.memberships = data.memberships;
-        state.amapKey = data.amapKey;
       },
     }
   )

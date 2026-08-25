@@ -243,22 +243,13 @@ export async function reconcile(local: {
   };
 }
 
-/** 拉取当前用户的 profile（含 role 与 amap_key）。 */
+/** 拉取当前用户的 profile（用户名与角色）。 */
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, username, role, amap_key")
+    .select("id, username, role")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
-  return data as { id: string; username: string | null; role: "admin" | "user"; amap_key: string } | null;
-}
-
-/** 更新当前用户的高德 key（存 profiles）。 */
-export async function pushAmapKey(userId: string, amapKey: string) {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ amap_key: amapKey, updated_at: new Date().toISOString() })
-    .eq("id", userId);
-  if (error) console.warn("[sync] 保存高德 key 失败:", error.message);
+  return data as { id: string; username: string | null; role: "admin" | "user" } | null;
 }

@@ -4,8 +4,7 @@ import type { LoyaltyGroup, Stay } from "../types";
 import { GROUP_BRANDS, GROUP_META } from "../types";
 import { geocodeCity } from "../lib/geocode";
 import { matchBrand } from "../lib/brandMatch";
-import { searchPoi, AmapError, amapErrorText, type AmapPoi } from "../lib/amap";
-import { useStaylog } from "../store/staylog";
+import { searchPoi, AmapError, amapErrorText, AMAP_KEY, type AmapPoi } from "../lib/amap";
 import { IconX, IconSearch } from "./Icons";
 
 interface Props {
@@ -30,7 +29,6 @@ function blank(): Stay {
 }
 
 export default function StayForm({ open, initial, onSave, onClose }: Props) {
-  const amapKey = useStaylog((s) => s.amapKey);
   const [form, setForm] = useState<Stay>(() => initial || blank());
   const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ok" | "fail">("idle");
   const geoTimer = useRef<number | undefined>(undefined);
@@ -75,7 +73,7 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
   // 高德在线搜索（防抖）
   function searchHotels(name: string) {
     window.clearTimeout(poiTimer.current);
-    if (!amapKey || name.trim().length < 2) {
+    if (!AMAP_KEY || name.trim().length < 2) {
       setPois([]);
       setPoiOpen(false);
       return;
@@ -86,7 +84,7 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
       const ctrl = new AbortController();
       poiAbort.current = ctrl;
       try {
-        const results = await searchPoi(name, amapKey, ctrl.signal);
+        const results = await searchPoi(name, AMAP_KEY, ctrl.signal);
         setPois(results);
         setPoiOpen(results.length > 0);
         setPoiStatus("idle");
@@ -162,7 +160,7 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
           <div className="field" style={{ position: "relative" }}>
             <label htmlFor="hotelName">
               酒店名称
-              {amapKey && <span style={{ color: "var(--faint)", fontWeight: 400, marginLeft: 8 }}>输入即搜索</span>}
+              {AMAP_KEY && <span style={{ color: "var(--faint)", fontWeight: 400, marginLeft: 8 }}>输入即搜索</span>}
             </label>
             <input id="hotelName" required autoComplete="off" value={form.hotelName}
               onChange={(e) => onHotelNameChange(e.target.value)}

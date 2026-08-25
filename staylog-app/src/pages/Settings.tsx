@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useStaylog } from "../store/staylog";
 import { exportBackup, parseBackup } from "../lib/backup";
+import { AMAP_KEY } from "../lib/amap";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { IconDownload, IconSparkle, IconTrash, IconUpload } from "../components/Icons";
 
@@ -10,11 +11,8 @@ export default function Settings() {
   const importData = useStaylog((s) => s.importData);
   const loadDemo = useStaylog((s) => s.loadDemo);
   const clearAll = useStaylog((s) => s.clearAll);
-  const amapKey = useStaylog((s) => s.amapKey);
-  const setAmapKey = useStaylog((s) => s.setAmapKey);
 
   const fileRef = useRef<HTMLInputElement>(null);
-  const [keyDraft, setKeyDraft] = useState(amapKey);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [confirmDemo, setConfirmDemo] = useState(false);
@@ -54,27 +52,16 @@ export default function Settings() {
       )}
 
       <div className="card settings-block">
-        <h3>酒店自动匹配（高德地图 Key）</h3>
+        <h3>酒店自动匹配（高德地图）</h3>
         <p>
-          填入高德地图 Web 服务 Key 后，录入住宿时输入酒店名可自动搜索并带出城市、地址、坐标——中文酒店最准。
-          留空也能用：系统仍会从酒店名离线识别品牌与集团（如「全季」→ 华住会）。
-          免费申请：<a href="https://lbs.amap.com/" target="_blank" rel="noreferrer" style={{ color: "var(--brass)" }}>lbs.amap.com</a>
-          {" "}→ 创建应用 → 添加 Key（服务平台选「Web 服务」）。
+          高德搜索由部署方全局配置，所有用户共享，无需单独设置。录入住宿时输入酒店名可自动搜索并带出城市、地址、坐标——中文酒店最准。
+          未配置时系统仍会从酒店名离线识别品牌与集团（如「全季」→ 华住会）。
         </p>
         <div className="row" style={{ alignItems: "center" }}>
-          <input
-            type="text"
-            value={keyDraft}
-            onChange={(e) => setKeyDraft(e.target.value)}
-            placeholder="粘贴高德 Web 服务 Key（32 位）"
-            style={{ maxWidth: 360, fontFamily: "var(--mono, monospace)" }}
-            aria-label="高德地图 Key"
-          />
-          <button className="btn btn-primary" onClick={() => { setAmapKey(keyDraft); setMsg({ text: keyDraft.trim() ? "已保存高德 Key，录入时将启用在线搜索" : "已清空高德 Key，将仅用离线品牌识别", ok: true }); }}>
-            保存 Key
-          </button>
-          {amapKey && (
-            <span style={{ fontSize: 12, color: "var(--good)" }}>● 在线搜索已启用</span>
+          {AMAP_KEY ? (
+            <span style={{ fontSize: 13, color: "var(--good)" }}>● 在线搜索已启用（全局配置）</span>
+          ) : (
+            <span style={{ fontSize: 13, color: "var(--faint)" }}>○ 未配置高德 Key，当前仅离线品牌识别</span>
           )}
         </div>
       </div>
