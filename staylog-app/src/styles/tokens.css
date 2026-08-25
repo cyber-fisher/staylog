@@ -67,15 +67,17 @@ a{color:inherit}
 .card{
   background:var(--surface);border:1px solid var(--line);border-radius:12px;
   box-shadow:var(--shadow);
+  transition:transform .24s cubic-bezier(.2,.8,.2,1),border-color .2s ease,box-shadow .24s ease;
 }
 .btn{
   display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;
   border:1px solid var(--line);background:var(--surface-2);font-size:13.5px;
-  transition:border-color .15s,background .15s;
+  transition:transform .16s ease,border-color .2s ease,background .2s ease,filter .2s ease,box-shadow .2s ease;
 }
-.btn:hover{border-color:var(--brass)}
+.btn:hover{border-color:var(--brass);transform:translateY(-1px)}
+.btn:active{transform:translateY(1px) scale(.98)}
 .btn-primary{background:var(--brass);border-color:var(--brass);color:var(--ink);font-weight:600}
-.btn-primary:hover{filter:brightness(1.08)}
+.btn-primary:hover{filter:brightness(1.08);box-shadow:0 7px 18px color-mix(in srgb,var(--brass) 24%,transparent)}
 .btn-danger{color:var(--danger);border-color:var(--danger)}
 .chip{
   font-size:10.5px;letter-spacing:.08em;padding:2px 9px;border-radius:99px;

@@ -6,16 +6,18 @@
   display:flex;flex-direction:column;gap:4px;background:var(--ink);
 }
 .logo{display:flex;align-items:baseline;gap:8px;padding:0 10px;margin-bottom:26px}
-.logo .zh{font-size:26px;letter-spacing:.12em;color:var(--brass)}
+.logo .zh{font-size:26px;letter-spacing:.12em;color:var(--brass);animation:logo-arrive .7s cubic-bezier(.2,.8,.2,1) both}
 .logo .en{font-size:10px;letter-spacing:.28em;color:var(--faint)}
 .sidenav a{
   display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
-  color:var(--muted);text-decoration:none;font-size:13.5px;transition:background .15s,color .15s;
+  color:var(--muted);text-decoration:none;font-size:13.5px;transition:background .2s,color .2s,transform .2s ease;
 }
-.sidenav a:hover{background:var(--surface);color:var(--text)}
+.sidenav a:hover{background:var(--surface);color:var(--text);transform:translateX(3px)}
 .sidenav a.active{background:var(--surface);color:var(--brass)}
 .sidenav a .ico{width:16px;text-align:center;color:var(--faint)}
 .sidenav a:hover .ico,.sidenav a.active .ico{color:var(--brass)}
+.sidenav a .ico svg{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.sidenav a:hover .ico svg{transform:scale(1.12)}
 .sidenav .spacer{flex:1}
 .theme-toggle{
   display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
@@ -25,6 +27,7 @@
 
 .page{flex:1;min-width:0;padding:36px 44px 80px;max-width:1180px}
 .page-full{flex:1;min-width:0;display:flex;flex-direction:column}
+.page,.page-full{animation:page-enter .42s cubic-bezier(.2,.8,.2,1) both}
 .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
 .page-head h1{font-size:26px;font-weight:600;letter-spacing:.03em}
 .page-head .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
@@ -32,6 +35,11 @@
 /* ============ 指标卡 ============ */
 .stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
 .stat{padding:16px 18px}
+.stat:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--brass) 48%,var(--line));box-shadow:0 14px 34px rgba(0,0,0,.3)}
+.stats-grid .stat{animation:card-enter .46s cubic-bezier(.2,.8,.2,1) both}
+.stats-grid .stat:nth-child(2){animation-delay:40ms}.stats-grid .stat:nth-child(3){animation-delay:80ms}
+.stats-grid .stat:nth-child(4){animation-delay:120ms}.stats-grid .stat:nth-child(5){animation-delay:160ms}
+.stats-grid .stat:nth-child(6){animation-delay:200ms}
 .stat .k{font-size:11px;color:var(--muted);letter-spacing:.14em;margin-bottom:6px}
 .stat .v{font-size:26px;line-height:1.1;color:var(--text)}
 .stat .v small{font-size:12px;color:var(--faint);margin-left:3px}
@@ -42,9 +50,9 @@
 /* ============ 住宿卡片 ============ */
 .stay-card{
   display:grid;grid-template-columns:96px 1fr auto;gap:20px;align-items:center;
-  padding:16px 20px;margin-bottom:10px;transition:border-color .15s;
+  padding:16px 20px;margin-bottom:10px;animation:list-item-enter .36s cubic-bezier(.2,.8,.2,1) both;
 }
-.stay-card:hover{border-color:var(--brass)}
+.stay-card:hover{border-color:var(--brass);transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .stay-card .date .m{font-size:11px;color:var(--faint);letter-spacing:.18em}
 .stay-card .date .d{font-size:21px}
 .stay-card .date .r{font-size:11px;color:var(--muted)}
@@ -71,12 +79,14 @@
                     var(--surface) 60%);
   border:1px solid color-mix(in srgb,var(--tint) 45%,var(--line));
   box-shadow:0 -6px 20px rgba(0,0,0,.30);
-  margin-top:-64px;transition:margin .28s ease,box-shadow .2s ease;
+  margin-top:-64px;transition:margin .32s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease,transform .24s ease;
+  animation:card-enter .4s cubic-bezier(.2,.8,.2,1) both;
 }
 .wallet-card::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--tint)}
 .wallet-card:first-child{margin-top:0}
 /* 展开的卡、以及紧随其后的那张，都要留出完整间距 */
 .wallet-card.expanded{margin-top:12px;box-shadow:0 10px 30px rgba(0,0,0,.38)}
+.wallet-card.expanded{transform:translateY(-2px)}
 .wallet-card.expanded:first-child{margin-top:0}
 .wallet-card.expanded + .wallet-card{margin-top:12px}
 
@@ -98,6 +108,8 @@
   color:color-mix(in srgb,var(--tint) 70%,var(--text));
   border:1px solid color-mix(in srgb,var(--tint) 45%,transparent);
 }
+.wc-logo svg{transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.wallet-card.expanded .wc-logo svg{transform:rotate(-8deg) scale(1.12)}
 .wc-summary{display:flex;gap:22px;padding:0 20px 16px;font-size:12.5px;color:var(--muted)}
 .wc-summary b{color:var(--text);font-weight:600}
 
@@ -112,6 +124,7 @@
 .wc-track .cap b{color:var(--text);font-weight:500}
 .wc-track .rail{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
 .wc-track .rail i{display:block;height:100%;border-radius:99px;background:var(--tint)}
+.wallet-card.expanded .wc-track .rail i{animation:progress-grow .55s .08s cubic-bezier(.2,.8,.2,1) both;transform-origin:left}
 .wc-note{font-size:11px;color:var(--faint);margin-top:7px}
 .wc-facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:var(--muted);margin-top:12px}
 .wc-facts b{color:var(--text)}
@@ -136,11 +149,12 @@
 /* ============ 表单抽屉 ============ */
 /* z-index 高于移动端底部导航栏（.sidenav:50 / .nav-secondary:60），
    否则抽屉底部的保存/取消按钮会被固定底部栏遮住、点不到 */
-.drawer-mask{position:fixed;inset:0;background:rgba(5,8,15,.55);z-index:70}
+.drawer-mask{position:fixed;inset:0;background:rgba(5,8,15,.55);z-index:70;animation:fade-in .22s ease both;backdrop-filter:blur(2px)}
 .drawer{
   position:fixed;top:0;right:0;bottom:0;width:460px;max-width:92vw;z-index:71;
   background:var(--surface);border-left:1px solid var(--line);
   display:flex;flex-direction:column;box-shadow:var(--shadow);
+  animation:drawer-enter .34s cubic-bezier(.2,.8,.2,1) both;
 }
 .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--line)}
 .drawer-head h2{font-size:17px}
@@ -160,6 +174,7 @@
   list-style:none;position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:4px;
   background:var(--surface);border:1px solid var(--line);border-radius:10px;
   box-shadow:var(--shadow);max-height:280px;overflow-y:auto;padding:4px;
+  transform-origin:top;animation:popover-enter .18s cubic-bezier(.2,.8,.2,1) both;
 }
 .poi-item{
   display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;
@@ -248,9 +263,17 @@
 
 /* ============ 图表卡 ============ */
 .chart-card{padding:18px 20px 12px}
+.chart-card:hover{border-color:color-mix(in srgb,var(--brass) 34%,var(--line))}
 .chart-card .t{font-size:12px;color:var(--muted);letter-spacing:.12em;margin-bottom:12px}
 /* 月度柱状图：布局在此定义（原为 inline，移出以便移动端媒体查询覆盖 gap） */
 .bars{display:flex;align-items:flex-end;gap:10px}
+.bars .bar i{transform-origin:bottom;animation:bar-grow .6s cubic-bezier(.2,.8,.2,1) both}
+.bars .bar:nth-child(2) i{animation-delay:35ms}.bars .bar:nth-child(3) i{animation-delay:70ms}
+.bars .bar:nth-child(4) i{animation-delay:105ms}.bars .bar:nth-child(5) i{animation-delay:140ms}
+.bars .bar:nth-child(6) i{animation-delay:175ms}.bars .bar:nth-child(7) i{animation-delay:210ms}
+.bars .bar:nth-child(8) i{animation-delay:245ms}.bars .bar:nth-child(9) i{animation-delay:280ms}
+.bars .bar:nth-child(10) i{animation-delay:315ms}.bars .bar:nth-child(11) i{animation-delay:350ms}
+.bars .bar:nth-child(12) i{animation-delay:385ms}
 .charts-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:1080px){.charts-2col{grid-template-columns:1fr}}
 
@@ -299,7 +322,8 @@ dialog.confirm{
   margin:auto;background:var(--surface);color:var(--text);border:1px solid var(--line);
   border-radius:12px;padding:24px 28px;max-width:380px;box-shadow:var(--shadow);
 }
-dialog.confirm::backdrop{background:rgba(5,8,15,.55)}
+dialog.confirm[open]{animation:dialog-enter .24s cubic-bezier(.2,.8,.2,1) both}
+dialog.confirm::backdrop{background:rgba(5,8,15,.55);animation:fade-in .2s ease both;backdrop-filter:blur(2px)}
 dialog.confirm h3{font-size:16px;margin-bottom:8px}
 dialog.confirm p{font-size:13px;color:var(--muted);margin-bottom:18px}
 dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
@@ -310,6 +334,7 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
   padding:40px;background:var(--ink);
 }
 .login-card{width:100%;max-width:400px;padding:36px 34px}
+.login-card{animation:login-enter .55s cubic-bezier(.2,.8,.2,1) both}
 .login-brand{display:flex;align-items:baseline;gap:10px;justify-content:center;margin-bottom:22px}
 .login-brand .zh{font-size:32px;letter-spacing:.14em;color:var(--brass)}
 .login-brand .en{font-size:11px;letter-spacing:.3em;color:var(--faint)}
@@ -342,6 +367,19 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
 .nav-secondary{display:flex;flex-direction:column;gap:2px}
 .nav-more-btn{display:none}
 
+/* ============ 动效系统 ============ */
+@keyframes page-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes card-enter{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes list-item-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes drawer-enter{from{opacity:.6;transform:translateX(32px)}to{opacity:1;transform:none}}
+@keyframes dialog-enter{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes popover-enter{from{opacity:0;transform:translateY(-4px) scaleY(.96)}to{opacity:1;transform:none}}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+@keyframes bar-grow{from{transform:scaleY(0);opacity:.35}to{transform:scaleY(1);opacity:1}}
+@keyframes progress-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes logo-arrive{from{opacity:0;transform:translateX(-8px);letter-spacing:.22em}to{opacity:1;transform:none;letter-spacing:.12em}}
+@keyframes login-enter{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+
 /* ============================================================
    移动端适配（≤768px）：侧栏 → 底部图标栏，所有页面拿到全宽
    ============================================================ */
@@ -370,6 +408,7 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
   }
   .nav-primary a .ico,.nav-more-btn .ico{margin:0}
   .nav-primary a.active{background:transparent;color:var(--brass)}
+  .nav-primary a:hover{transform:none}
   .nav-more-btn{display:flex;border:none;background:transparent}
 
   /* 次要项默认隐藏，点「更多」弹出为底部面板 */
@@ -386,6 +425,7 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
     width:100%;padding:12px;font-size:14px;
   }
   .nav-more-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:55}
+  .nav-more-mask{animation:fade-in .2s ease both;backdrop-filter:blur(2px)}
 
   /* 页面框架：全宽，收敛内边距，底部给导航栏留白 */
   .page{padding:16px 14px 88px;max-width:none}
@@ -419,6 +459,7 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
 
   /* 表单抽屉：全宽 */
   .drawer{width:100%;max-width:100vw}
+  .drawer{animation-name:drawer-enter-mobile}
 
   /* Wrapped：大数字防溢出 */
   .wrapped-card{padding:28px 20px}
@@ -429,6 +470,8 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
   .login-screen{padding:20px}
   .login-card{padding:28px 22px}
 }
+
+@keyframes drawer-enter-mobile{from{opacity:.65;transform:translateY(28px)}to{opacity:1;transform:none}}
 
 /* 更小屏（≤400px）：成对输入堆叠、进一步收敛 */
 @media (max-width:400px){
