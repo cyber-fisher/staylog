@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useStaylog } from "../store/staylog";
 import { aggregateCities, aggregateHotels, distanceKm } from "../lib/stats";
 import { wgs84ToGcj02 } from "../lib/amap";
+import { geocodeCity } from "../lib/geocode";
 import { GROUP_META, type LoyaltyGroup } from "../types";
 import EmptyState from "../components/EmptyState";
 
@@ -42,8 +43,15 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 
+// 高德 geocode 只对中国有效——只补全境内酒店（含港澳台）。country 含"中国"或为空即视为境内。
+function isDomestic(country: string | undefined): boolean {
+  if (!country) return true;
+  return country.includes("中国") || country.includes("中华人民共和国");
+}
+
 export default function MapPage() {
   const stays = useStaylog((s) => s.stays);
+  const updateStay = useStaylog((s) => s.updateStay);
   const navigate = useNavigate();
   const navRef = useRef(navigate);
   navRef.current = navigate;
@@ -58,6 +66,9 @@ export default function MapPage() {
   const located = cities.filter((c) => c.lat != null);
 
   const [activeCity, setActiveCity] = useState<string | null>(null);
+  // 存量数据自动补全定位的进度提示（{done,total}），完成后清空
+  const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
+  const backfillRan = useRef(false);
 
   const homeBase = located[0];
   const farthest = useMemo(() => {
@@ -249,6 +260,35 @@ export default function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotels]);
 
+  // 存量数据自动补全：旧记录（Nominatim 时代手填城市）缺坐标 → 逐个高德补全并写回云端。
+  // 只处理"有城市名、境内、缺坐标"的记录；每会话跑一次，串行 + 间隔防限频。
+  useEffect(() => {
+    if (backfillRan.current) return;
+    const pending = stays.filter((s) => s.lat == null && s.city?.trim() && isDomestic(s.country));
+    if (pending.length === 0) return;
+    backfillRan.current = true;
+
+    let cancelled = false;
+    (async () => {
+      setGeocoding({ done: 0, total: pending.length });
+      for (let i = 0; i < pending.length; i++) {
+        if (cancelled) return;
+        const s = pending[i];
+        const r = await geocodeCity(`${s.city} ${s.country || ""}`.trim());
+        if (cancelled) return;
+        if (r) updateStay(s.id, { lat: r.lat, lng: r.lng });
+        setGeocoding({ done: i + 1, total: pending.length });
+        if (i < pending.length - 1) await new Promise((res) => setTimeout(res, 300));
+      }
+      if (!cancelled) setGeocoding(null);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stays]);
+
   function flyToCity(city: string, lat: number, lng: number) {
     setActiveCity(city);
     mapRef.current?.flyTo({ center: project(lng, lat), zoom: 10, duration: 1600 });
@@ -298,6 +338,11 @@ export default function MapPage() {
           <button className="map-reset-btn" onClick={resetView} title="重置到全国视图">
             重置视图
           </button>
+          {geocoding && (
+            <div className="map-geocoding" role="status">
+              正在定位 <b className="mono">{geocoding.done}/{geocoding.total}</b> 家酒店…
+            </div>
+          )}
           <div className="map-statbar">
             <span>累计足迹 <b className="mono">{cities.length}</b> 城 · <b className="mono">{new Set(stays.map((s) => s.country)).size}</b> 国</span>
             {homeBase && <span>最常入住 <b>{homeBase.city}</b>（{homeBase.nights}晚）</span>}
