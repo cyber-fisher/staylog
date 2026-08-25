@@ -68,20 +68,21 @@ export const demoStays: Stay[] = [
 ];
 
 // 会籍模板不含 id：loadDemo 载入时会为每条生成新 uuid（云端主键）
+// tier 用 GROUP_TIERS 中的规范等级名；下一级/门槛由 tierProgress 自动派生，无需 targetTier/targetNights
 export const demoMemberships: Omit<Membership, "id">[] = [
-  { group: "hilton", tier: "钻石会员 DIAMOND", pointsBalance: 286540,
-    tierExpiry: "2027-03-31", targetTier: "钻石续级", targetNights: 60, bonusNights: 20,
+  { group: "hilton", tier: "钻石", pointsBalance: 286540,
+    tierExpiry: "2027-03-31", targetNights: 0, bonusNights: 20,
     certificates: [] },
-  { group: "marriott", tier: "白金精英 PLATINUM", pointsBalance: 152210,
-    tierExpiry: "2028-02-01", targetTier: "钛金精英 TITANIUM", targetNights: 75, bonusNights: 15,
+  { group: "marriott", tier: "白金", pointsBalance: 152210,
+    tierExpiry: "2028-02-01", targetNights: 0, bonusNights: 15,
     certificates: [{ name: "套房升级券 ×2", expiry: "2026-12-31" }] },
-  { group: "ihg", tier: "白金会员 PLATINUM", pointsBalance: 64800,
-    tierExpiry: "2027-01-01", targetTier: "钻石会员 DIAMOND", targetNights: 70, bonusNights: 10,
+  { group: "ihg", tier: "白金", pointsBalance: 64800,
+    tierExpiry: "2027-01-01", targetNights: 0, bonusNights: 10,
     certificates: [] },
-  { group: "hyatt", tier: "探索者 EXPLORIST", pointsBalance: 23150,
-    tierExpiry: "2027-02-28", targetTier: "环球客 GLOBALIST", targetNights: 60, bonusNights: 5,
+  { group: "hyatt", tier: "探索者", pointsBalance: 23150,
+    tierExpiry: "2027-02-28", targetNights: 0, bonusNights: 5,
     certificates: [{ name: "Cat 1-4 免房券", expiry: "2026-12-31" }] },
-  { group: "huazhu", tier: "铂金会员 PLATINUM", pointsBalance: 8400,
-    tierExpiry: "2027-06-30", targetTier: "金卡会员 GOLD", targetNights: 40, bonusNights: 0,
+  { group: "huazhu", tier: "铂金会员", pointsBalance: 8400,
+    tierExpiry: "2027-06-30", targetNights: 0, bonusNights: 0,
     certificates: [{ name: "延迟退房券 ×3", expiry: "2026-12-31" }] },
 ];

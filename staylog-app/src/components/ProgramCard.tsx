@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import type { Membership, Stay } from "../types";
 import { GROUP_META } from "../types";
-import { nightsByGroup, recentMonthlyPace } from "../lib/stats";
+import { recentMonthlyPace, tierProgress } from "../lib/stats";
 import { IconEdit, IconTrash } from "./Icons";
 
 interface Props {
@@ -15,17 +15,15 @@ interface Props {
 export default function ProgramCard({ membership: m, stays, compact, onEdit, onDelete }: Props) {
   const meta = GROUP_META[m.group];
   const year = dayjs().year();
-  const yearNights = nightsByGroup(stays, year)[m.group] || 0;
-  const progress = yearNights + m.bonusNights;
-  const pct = m.targetNights > 0 ? Math.min(100, Math.round((progress / m.targetNights) * 100)) : 0;
-  const remaining = Math.max(0, m.targetNights - progress);
+  const tp = tierProgress(m, stays, year);
+  const yearNights = tp.progress - m.bonusNights;
 
   // 达成预测：按近 6 个月该集团月均晚数外推
   const groupStays = stays.filter((s) => s.group === m.group);
   const pace = recentMonthlyPace(groupStays, 6);
   let forecast: string | null = null;
-  if (remaining > 0 && pace > 0.1) {
-    const months = Math.ceil(remaining / pace);
+  if (tp.remaining > 0 && pace > 0.1) {
+    const months = Math.ceil(tp.remaining / pace);
     const eta = dayjs().add(months, "month");
     forecast = eta.year() === year ? `按当前节奏预计 ${eta.month() + 1} 月达成` : "按当前节奏本年内难以达成";
   }
@@ -33,6 +31,7 @@ export default function ProgramCard({ membership: m, stays, compact, onEdit, onD
   const name = m.group === "other" ? m.customName || "其他集团" : meta.name;
   const en = m.group === "other" ? "CUSTOM" : meta.en;
   const style = m.group === "other" && m.customColor ? { "--bc": m.customColor } as React.CSSProperties : undefined;
+  const tierLabel = tp.currentEn ? `${tp.currentName} ${tp.currentEn}` : tp.currentName;
 
   return (
     <div className={`card prog ${meta.className}`} style={style}>
@@ -47,7 +46,7 @@ export default function ProgramCard({ membership: m, stays, compact, onEdit, onD
           <div className="name">{name}</div>
           <div className="en-name">{en}</div>
         </div>
-        <span className="tier-badge">{m.tier}</span>
+        <span className="tier-badge">{tierLabel}</span>
       </div>
       <div className="pts">
         <div>
@@ -67,14 +66,20 @@ export default function ProgramCard({ membership: m, stays, compact, onEdit, onD
       </div>
       <div className="track">
         <div className="cap">
-          <span>{m.targetTier || "定级进度"}</span>
-          <b className="mono">{progress} / {m.targetNights} 晚</b>
+          <span>
+            {tp.mode === "upgrade" ? `冲刺 ${tp.targetName}` : tp.mode === "top" ? "已达最高等级" : tp.targetName || "定级进度"}
+          </span>
+          <b className="mono">{tp.progress} / {tp.threshold} 晚</b>
         </div>
-        <div className="rail"><i style={{ width: `${pct}%` }} /></div>
+        <div className="rail"><i style={{ width: `${tp.pct}%` }} /></div>
       </div>
       {!compact && (
         <div className="note">
-          {remaining > 0 ? `还差 ${remaining} 晚` : "目标已达成 ✓"}
+          {tp.mode === "top"
+            ? "已达最高等级 ✓"
+            : tp.remaining > 0
+              ? `还差 ${tp.remaining} 晚${tp.targetName ? `升级${tp.targetName}` : ""}`
+              : "目标已达成 ✓"}
           {forecast && ` · ${forecast}`}
           {m.tierExpiry && ` · 等级有效期至 ${m.tierExpiry}`}
         </div>

@@ -4,7 +4,8 @@ import { useStaylog } from "../store/staylog";
 import ProgramCard from "../components/ProgramCard";
 import ConfirmDialog from "../components/ConfirmDialog";
 import type { LoyaltyGroup, Membership } from "../types";
-import { GROUP_META } from "../types";
+import { GROUP_META, GROUP_TIERS } from "../types";
+import { nextTier } from "../lib/stats";
 import { IconPlus, IconX } from "../components/Icons";
 
 interface ExpiryEntry {
@@ -18,7 +19,7 @@ function blankMembership(): Membership {
   return {
     id: crypto.randomUUID(),
     group: "hilton",
-    tier: "",
+    tier: GROUP_TIERS.hilton[0].name,
     pointsBalance: 0,
     targetNights: 0,
     bonusNights: 0,
@@ -130,7 +131,10 @@ export default function Programs() {
               <div className="field">
                 <label htmlFor="m-group">集团</label>
                 <select id="m-group" value={form.group} disabled={!!editing}
-                  onChange={(e) => set("group", e.target.value as LoyaltyGroup)}>
+                  onChange={(e) => {
+                    const group = e.target.value as LoyaltyGroup;
+                    setForm((f) => ({ ...f, group, tier: GROUP_TIERS[group][0]?.name ?? "" }));
+                  }}>
                   {Object.entries(GROUP_META).map(([k, meta]) => (
                     <option key={k} value={k}>{meta.name}</option>
                   ))}
@@ -153,8 +157,22 @@ export default function Programs() {
               <div className="field-row">
                 <div className="field">
                   <label htmlFor="m-tier">当前等级</label>
-                  <input id="m-tier" required value={form.tier}
-                    onChange={(e) => set("tier", e.target.value)} placeholder="钻石会员 DIAMOND" />
+                  {GROUP_TIERS[form.group].length > 0 ? (
+                    <select id="m-tier" required value={form.tier} onChange={(e) => set("tier", e.target.value)}>
+                      {/* 旧数据/匹配来的等级名不在内置表中时，注入为可选项，避免受控 select 值丢失 */}
+                      {!GROUP_TIERS[form.group].some((t) => t.name === form.tier) && form.tier && (
+                        <option value={form.tier}>{form.tier}（原值）</option>
+                      )}
+                      {GROUP_TIERS[form.group].map((t) => (
+                        <option key={t.name} value={t.name}>
+                          {t.en ? `${t.name} ${t.en}` : t.name}{t.nights > 0 ? ` · ${t.nights} 晚` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input id="m-tier" required value={form.tier}
+                      onChange={(e) => set("tier", e.target.value)} placeholder="钻石会员 DIAMOND" />
+                  )}
                 </div>
                 <div className="field">
                   <label htmlFor="m-no">会员号（选填）</label>
@@ -174,18 +192,33 @@ export default function Programs() {
                     onChange={(e) => set("tierExpiry", e.target.value || undefined)} />
                 </div>
               </div>
-              <div className="field-row">
+              {GROUP_TIERS[form.group].length > 0 ? (
                 <div className="field">
-                  <label htmlFor="m-target">冲刺目标（选填）</label>
-                  <input id="m-target" value={form.targetTier || ""}
-                    onChange={(e) => set("targetTier", e.target.value || undefined)} placeholder="钻石续级 / 升级钛金" />
+                  <label>下一等级（自动按晚数计算）</label>
+                  <div className="derived-tier">
+                    {(() => {
+                      const nt = nextTier(form.group, form.tier);
+                      if (nt) return <>冲刺 <b>{nt.en ? `${nt.name} ${nt.en}` : nt.name}</b> · 需 <b>{nt.nights}</b> 晚</>;
+                      // 未匹配（原值）时无法派生
+                      if (!GROUP_TIERS[form.group].some((t) => t.name === form.tier)) return "选择内置等级后自动计算升级进度";
+                      return "已是最高等级 ✓";
+                    })()}
+                  </div>
                 </div>
-                <div className="field">
-                  <label htmlFor="m-target-n">目标所需晚数</label>
-                  <input id="m-target-n" type="number" min={0} value={form.targetNights}
-                    onChange={(e) => set("targetNights", Number(e.target.value) || 0)} />
+              ) : (
+                <div className="field-row">
+                  <div className="field">
+                    <label htmlFor="m-target">冲刺目标（选填）</label>
+                    <input id="m-target" value={form.targetTier || ""}
+                      onChange={(e) => set("targetTier", e.target.value || undefined)} placeholder="钻石续级 / 升级钛金" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="m-target-n">目标所需晚数</label>
+                    <input id="m-target-n" type="number" min={0} value={form.targetNights}
+                      onChange={(e) => set("targetNights", Number(e.target.value) || 0)} />
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="field">
                 <label htmlFor="m-bonus">赠晚（信用卡等非入住晚数）</label>
                 <input id="m-bonus" type="number" min={0} value={form.bonusNights}

@@ -82,3 +82,57 @@ export const GROUP_BRANDS: Record<LoyaltyGroup, string[]> = {
   huazhu: ["禧玥", "花间堂", "美爵", "美居", "诺富特", "施柏阁", "全季", "桔子水晶", "桔子", "漫心", "宜必思", "星程", "汉庭", "怡莱", "海友", "你好", "CitiGO", "Steigenberger", "Zleep"],
   other: [],
 };
+
+/** 单个会员等级定义 */
+export interface TierDef {
+  /** 中文等级名（作为 Membership.tier 的规范值） */
+  name: string;
+  /** 英文等级名 */
+  en?: string;
+  /** 达到该等级所需的本年入住晚数门槛 */
+  nights: number;
+}
+
+/**
+ * 各集团真实定级体系（按晚数升序）。仅晚数口径——官方"晚数 OR 次数 OR 积分"三选一中的晚数门槛。
+ * 门槛数据核实于各集团 2025 官方规则。修改门槛只需改这里。
+ * other（自定义集团）无内置等级，走手填回退。
+ */
+export const GROUP_TIERS: Record<LoyaltyGroup, TierDef[]> = {
+  hilton: [
+    { name: "会员", en: "Member", nights: 0 },
+    { name: "银卡", en: "Silver", nights: 10 },
+    { name: "金卡", en: "Gold", nights: 25 },
+    { name: "钻石", en: "Diamond", nights: 50 },
+    { name: "曜钻", en: "Diamond+", nights: 80 },
+  ],
+  marriott: [
+    { name: "会员", en: "Member", nights: 0 },
+    { name: "银卡", en: "Silver Elite", nights: 10 },
+    { name: "金卡", en: "Gold Elite", nights: 25 },
+    { name: "白金", en: "Platinum Elite", nights: 50 },
+    { name: "钛金", en: "Titanium Elite", nights: 75 },
+    { name: "大使", en: "Ambassador Elite", nights: 100 },
+  ],
+  ihg: [
+    { name: "俱乐部", en: "Club", nights: 0 },
+    { name: "银卡", en: "Silver Elite", nights: 10 },
+    { name: "金卡", en: "Gold Elite", nights: 20 },
+    { name: "白金", en: "Platinum Elite", nights: 40 },
+    { name: "钻石", en: "Diamond Elite", nights: 70 },
+  ],
+  hyatt: [
+    { name: "会员", en: "Member", nights: 0 },
+    { name: "探索者", en: "Discoverist", nights: 10 },
+    { name: "悦旅客", en: "Explorist", nights: 30 },
+    { name: "环球客", en: "Globalist", nights: 60 },
+  ],
+  huazhu: [
+    { name: "星会员", en: "Star", nights: 0 },
+    { name: "银会员", en: "Silver", nights: 3 },
+    { name: "金会员", en: "Gold", nights: 5 },
+    { name: "铂金会员", en: "Platinum", nights: 30 },
+    { name: "钻石会员", en: "Diamond", nights: 70 },
+  ],
+  other: [],
+};

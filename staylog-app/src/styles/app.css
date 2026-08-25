@@ -109,6 +109,8 @@
 .drawer-body{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px}
 .drawer-foot{display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--line)}
 .field label{display:block;font-size:11.5px;color:var(--muted);letter-spacing:.08em;margin-bottom:5px}
+.derived-tier{font-size:13px;color:var(--text);padding:9px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px}
+.derived-tier b{color:var(--brass)}
 .field .hint{font-size:11px;color:var(--faint);margin-top:4px}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .geo-status{font-size:11.5px;margin-top:4px}

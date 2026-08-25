@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
-import type { Stay } from "../types";
+import type { LoyaltyGroup, Membership, Stay, TierDef } from "../types";
+import { GROUP_TIERS } from "../types";
 
 export function nightsOf(stay: Stay): number {
   return Math.max(1, dayjs(stay.checkOut).diff(dayjs(stay.checkIn), "day"));
@@ -151,4 +152,99 @@ export function recentMonthlyPace(stays: Stay[], months = 6): number {
 
 export function yearsWithData(stays: Stay[]): number[] {
   return [...new Set(stays.map((s) => dayjs(s.checkIn).year()))].sort((a, b) => b - a);
+}
+
+// ============ 常旅客定级（基于内置 GROUP_TIERS 派生）============
+
+/** 当前等级在该集团真实等级表中的定义；精确匹配，找不到返回 null（旧数据/自定义） */
+export function currentTierDef(group: LoyaltyGroup, tier: string): TierDef | null {
+  return GROUP_TIERS[group]?.find((t) => t.name === tier) ?? null;
+}
+
+/** 下一个更高等级；已是最高或未匹配返回 null */
+export function nextTier(group: LoyaltyGroup, tier: string): TierDef | null {
+  const tiers = GROUP_TIERS[group];
+  if (!tiers || tiers.length === 0) return null;
+  const i = tiers.findIndex((t) => t.name === tier);
+  if (i < 0) return null;
+  return tiers[i + 1] ?? null;
+}
+
+export interface TierProgress {
+  /** upgrade=冲刺下一级；top=已达最高（保级）；manual=自定义/旧数据手填 */
+  mode: "upgrade" | "top" | "manual";
+  currentName: string;
+  currentEn?: string;
+  /** 本年晚数 + 赠晚 */
+  progress: number;
+  /** 目标门槛晚数 */
+  threshold: number;
+  /** 0-100 */
+  pct: number;
+  remaining: number;
+  /** 目标等级名（upgrade 为下一级名；top 为 null；manual 为手填 targetTier） */
+  targetName: string | null;
+  targetEn?: string;
+}
+
+/**
+ * 计算会籍的定级进度。已知集团按内置真实等级派生下一级与门槛；
+ * other 集团或旧数据未匹配等级时，回退到手填 targetNights/targetTier。
+ */
+export function tierProgress(m: Membership, stays: Stay[], year: number): TierProgress {
+  const progress = (nightsByGroup(stays, year)[m.group] || 0) + m.bonusNights;
+  const tiers = GROUP_TIERS[m.group];
+
+  // 自定义集团（无内置等级）→ 手填
+  if (!tiers || tiers.length === 0) {
+    return manualProgress(m, progress);
+  }
+
+  const cur = currentTierDef(m.group, m.tier);
+  // 旧数据：存的等级名不匹配任一内置等级 → 手填回退
+  if (!cur) {
+    return manualProgress(m, progress);
+  }
+
+  const next = nextTier(m.group, m.tier);
+  if (next) {
+    const threshold = next.nights;
+    return {
+      mode: "upgrade",
+      currentName: cur.name,
+      currentEn: cur.en,
+      progress,
+      threshold,
+      pct: threshold > 0 ? Math.min(100, Math.round((progress / threshold) * 100)) : 0,
+      remaining: Math.max(0, threshold - progress),
+      targetName: next.name,
+      targetEn: next.en,
+    };
+  }
+
+  // 已是最高等级 → 保级进度（对比自身门槛）
+  const threshold = cur.nights;
+  return {
+    mode: "top",
+    currentName: cur.name,
+    currentEn: cur.en,
+    progress,
+    threshold,
+    pct: threshold > 0 ? Math.min(100, Math.round((progress / threshold) * 100)) : 100,
+    remaining: Math.max(0, threshold - progress),
+    targetName: null,
+  };
+}
+
+function manualProgress(m: Membership, progress: number): TierProgress {
+  const threshold = m.targetNights;
+  return {
+    mode: "manual",
+    currentName: m.tier,
+    progress,
+    threshold,
+    pct: threshold > 0 ? Math.min(100, Math.round((progress / threshold) * 100)) : 0,
+    remaining: Math.max(0, threshold - progress),
+    targetName: m.targetTier || null,
+  };
 }
