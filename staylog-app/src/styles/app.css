@@ -154,29 +154,61 @@
 .city-row{
   display:flex;align-items:center;gap:8px;width:100%;text-align:left;
   padding:8px 10px;border-radius:8px;font-size:13px;color:var(--muted);
+  transition:background .15s,color .15s,box-shadow .15s;
 }
 .city-row:hover{background:var(--surface);color:var(--text)}
+.city-row:disabled{opacity:.5;cursor:default}
+.city-row.active{background:var(--surface);color:var(--brass);box-shadow:inset 3px 0 0 var(--brass)}
 .city-row .n{margin-left:auto;font-size:12px;color:var(--faint)}
+.city-row.active .n{color:var(--brass)}
 .map-main{flex:1;position:relative;min-width:0}
 .map-main .maplibregl-map{position:absolute;inset:0}
-/* 暗色模式 + 高德浅色街道图时，反相着色成深色底图。只作用于底图 canvas，
-   HTML 标记与弹窗是 overlay，用反向滤镜抵消，保持原色。 */
-.map-main.tint-dark .maplibregl-canvas{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9)}
-.map-main.tint-dark .maplibregl-marker,
-.map-main.tint-dark .maplibregl-popup{filter:invert(1) hue-rotate(180deg)}
+
+/* 缩放/导航控件皮肤化 */
+.maplibregl-ctrl-group{
+  background:var(--surface)!important;border:1px solid var(--line)!important;
+  border-radius:8px!important;box-shadow:var(--shadow)!important;overflow:hidden;
+}
+.maplibregl-ctrl-group button+button{border-top:1px solid var(--line)!important}
+.maplibregl-ctrl-group button{background:var(--surface)!important}
+/* +/- 图标是深色 SVG，仅暗色主题下反相成浅色 */
+:root:not([data-theme="light"]) .maplibregl-ctrl-icon{filter:invert(1)}
+.maplibregl-ctrl-attrib{background:color-mix(in srgb,var(--ink) 70%,transparent)!important;color:var(--faint)!important}
+.maplibregl-ctrl-attrib a{color:var(--muted)!important}
+
+/* 重置视图按钮（地图左上角覆盖） */
+.map-reset-btn{
+  position:absolute;top:10px;left:10px;z-index:6;
+  padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
+  background:var(--surface);color:var(--brass);border:1px solid var(--line);
+  box-shadow:var(--shadow);transition:border-color .15s;
+}
+.map-reset-btn:hover{border-color:var(--brass)}
+
+/* 底部统计条 */
 .map-statbar{
   position:absolute;left:0;right:0;bottom:0;z-index:5;
-  display:flex;gap:26px;padding:12px 22px;font-size:12px;color:var(--muted);
+  display:flex;gap:0;font-size:12px;color:var(--muted);
   background:color-mix(in srgb, var(--ink) 88%, transparent);
   border-top:1px solid var(--line);backdrop-filter:blur(6px);
 }
-.map-statbar b{color:var(--text)}
-.map-popup{font-size:12.5px;line-height:1.5}
-.map-popup b{font-size:13.5px}
+.map-statbar span{padding:12px 22px;border-right:1px solid var(--line)}
+.map-statbar span:last-child{border-right:none}
+.map-statbar b{color:var(--brass);font-weight:600}
+
+/* 标记弹窗卡片 */
+.map-popup{font-size:12.5px;line-height:1.6;min-width:180px}
+.map-popup .mp-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px}
+.map-popup .mp-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .map-popup .sub{color:var(--muted)}
-.maplibregl-popup-content{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:12px 14px!important}
+.map-popup-cta{
+  display:block;width:100%;margin-top:12px;padding:8px;border-radius:8px;
+  background:var(--brass);color:var(--ink);font-weight:600;font-size:12.5px;text-align:center;
+}
+.map-popup-cta:hover{filter:brightness(1.08)}
+.maplibregl-popup-content{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px!important}
 .maplibregl-popup-tip{border-top-color:var(--surface)!important;border-bottom-color:var(--surface)!important}
-.maplibregl-popup-close-button{color:var(--muted)!important;font-size:16px}
+.maplibregl-popup-close-button{color:var(--muted)!important;font-size:18px;padding:2px 8px}
 
 /* ============ 图表卡 ============ */
 .chart-card{padding:18px 20px 12px}

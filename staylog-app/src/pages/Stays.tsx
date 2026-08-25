@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 import { useStaylog } from "../store/staylog";
 import { nightsOf, yearsWithData } from "../lib/stats";
@@ -16,12 +17,20 @@ export default function Stays() {
   const updateStay = useStaylog((s) => s.updateStay);
   const removeStay = useStaylog((s) => s.removeStay);
 
+  const [searchParams] = useSearchParams();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Stay | null>(null);
   const [deleting, setDeleting] = useState<Stay | null>(null);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(() => searchParams.get("q") ?? "");
   const [groupFilter, setGroupFilter] = useState<"" | LoyaltyGroup>("");
   const [yearFilter, setYearFilter] = useState("");
+
+  // 从地图"查看入住记录"跳转带 ?q= 时预填搜索框（已挂载页 SPA 跳转也生效）
+  useEffect(() => {
+    const qp = searchParams.get("q");
+    if (qp) setQ(qp);
+  }, [searchParams]);
+
 
   const years = useMemo(() => yearsWithData(stays), [stays]);
 
