@@ -98,9 +98,11 @@
 .expiry-item.soon .days{color:var(--warn)}
 
 /* ============ 表单抽屉 ============ */
-.drawer-mask{position:fixed;inset:0;background:rgba(5,8,15,.55);z-index:40}
+/* z-index 高于移动端底部导航栏（.sidenav:50 / .nav-secondary:60），
+   否则抽屉底部的保存/取消按钮会被固定底部栏遮住、点不到 */
+.drawer-mask{position:fixed;inset:0;background:rgba(5,8,15,.55);z-index:70}
 .drawer{
-  position:fixed;top:0;right:0;bottom:0;width:460px;max-width:92vw;z-index:41;
+  position:fixed;top:0;right:0;bottom:0;width:460px;max-width:92vw;z-index:71;
   background:var(--surface);border-left:1px solid var(--line);
   display:flex;flex-direction:column;box-shadow:var(--shadow);
 }
