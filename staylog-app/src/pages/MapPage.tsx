@@ -69,6 +69,8 @@ export default function MapPage() {
   // 存量数据自动补全定位的进度提示（{done,total}），完成后清空
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
   const backfillRan = useRef(false);
+  // 是否已把视野框到酒店点（初始 load 与数据 effect 竞争，先到者置位，避免二次抢镜）
+  const didFit = useRef(false);
 
   const homeBase = located[0];
   const farthest = useMemo(() => {
@@ -108,15 +110,32 @@ export default function MapPage() {
     };
   }
 
-  function addMarkerLayers() {
-    const map = mapRef.current!;
-    map.addSource("hotels", {
-      type: "geojson",
-      data: buildHotelFC(),
-      cluster: true,
-      clusterRadius: 46,
-      clusterMaxZoom: 11,
-    });
+  // 幂等地保证标记 source+图层就位并携带最新数据。
+  // 关键：慢网/离线子资源下 isStyleLoaded() 可能长期为 false（栅格瓦片/字形仍在拉），
+  // 但此时 addSource/setData 其实已可用。故不用 isStyleLoaded() 做闸门——
+  // source 已存在就直接 setData；不存在就尝试 addSource，若抛"Style not done loading"
+  // 再挂一次 'load' 重试。这样"数据先到、样式后到"或反之都能收敛，不会卡成空图。
+  function ensureMarkers() {
+    const map = mapRef.current;
+    if (!map) return;
+    const existing = map.getSource("hotels") as maplibregl.GeoJSONSource | undefined;
+    if (existing) {
+      existing.setData(buildHotelFC());
+      return;
+    }
+    try {
+      map.addSource("hotels", {
+        type: "geojson",
+        data: buildHotelFC(),
+        cluster: true,
+        clusterRadius: 46,
+        clusterMaxZoom: 11,
+      });
+    } catch {
+      // 样式尚未就绪（addSource 抛错）——等 load 再来一次
+      map.once("load", () => ensureMarkers());
+      return;
+    }
 
     // 聚合圆（黄铜色，按数量分档）+ 光晕描边
     map.addLayer({
@@ -194,14 +213,10 @@ export default function MapPage() {
     mapRef.current = map;
 
     map.on("load", () => {
-      addMarkerLayers();
-      const h = hotelsRef.current;
-      if (h.length > 1) {
-        const bounds = new maplibregl.LngLatBounds();
-        h.forEach((x) => bounds.extend(project(x.lng!, x.lat!)));
-        map.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 0 });
-      } else if (h.length === 1) {
-        map.jumpTo({ center: project(h[0].lng!, h[0].lat!), zoom: 11 });
+      ensureMarkers();
+      if (hotelsRef.current.length > 0) {
+        didFit.current = true;
+        fitToHotels(0);
       }
 
       // 点聚合 → 展开放大（v6：getClusterExpansionZoom 返回 Promise）
@@ -236,6 +251,16 @@ export default function MapPage() {
       }
     });
 
+    // 兜底：'idle' 在地图首次渲染稳定后触发，比 'load'/isStyleLoaded 更可靠。
+    // 若 load 时序异常导致标记没建/没数据，这里再收敛一次。
+    map.once("idle", () => {
+      ensureMarkers();
+      if (!didFit.current && hotelsRef.current.length > 0) {
+        didFit.current = true;
+        fitToHotels(0);
+      }
+    });
+
     // popup 里的"查看入住记录"按钮在 React 树外，用容器事件委托桥接到路由
     const container = map.getContainer();
     const onDelegatedClick = (e: MouseEvent) => {
@@ -252,11 +277,19 @@ export default function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stays.length === 0]);
 
-  // 酒店数据变化 → 重建 source
+  // 酒店数据变化 → 幂等收敛标记（慢网下 source 可能尚未建，ensureMarkers 会补建而非被吞掉）。
+  // style 未就绪时补挂一次 'load' 兜底，确保数据先到、底图后到的顺序也能落点。
+  // 首次拿到点时把视野框过去（应对云端数据晚于建图到达的情况）。
   useEffect(() => {
     const map = mapRef.current;
-    const src = map?.getSource("hotels") as maplibregl.GeoJSONSource | undefined;
-    src?.setData(buildHotelFC());
+    if (!map) return;
+    const firstPoints = !didFit.current && hotels.length > 0;
+    // ensureMarkers 自带"样式未就绪则挂 load 重试"，这里无需再判 isStyleLoaded
+    ensureMarkers();
+    if (firstPoints) {
+      didFit.current = true;
+      fitToHotels(0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hotels]);
 
@@ -294,18 +327,25 @@ export default function MapPage() {
     mapRef.current?.flyTo({ center: project(lng, lat), zoom: 10, duration: 1600 });
   }
 
-  function resetView() {
+  // 把视野框到全部已定位酒店（含海外）；无点则回落到全国视图。duration=0 用于初始化。
+  function fitToHotels(duration: number) {
     const map = mapRef.current;
     if (!map) return;
     const h = hotelsRef.current;
-    setActiveCity(null);
     if (h.length > 1) {
       const bounds = new maplibregl.LngLatBounds();
       h.forEach((x) => bounds.extend(project(x.lng!, x.lat!)));
-      map.fitBounds(bounds, { padding: 80, maxZoom: 10, duration: 800 });
+      map.fitBounds(bounds, { padding: 80, maxZoom: 10, duration });
+    } else if (h.length === 1) {
+      map.jumpTo({ center: project(h[0].lng!, h[0].lat!), zoom: 11 });
     } else {
-      map.flyTo({ center: [105, 35], zoom: 3.6, duration: 800 });
+      map.flyTo({ center: [105, 35], zoom: 3.6, duration });
     }
+  }
+
+  function resetView() {
+    setActiveCity(null);
+    fitToHotels(800);
   }
 
   if (stays.length === 0) {
