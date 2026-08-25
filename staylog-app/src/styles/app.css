@@ -177,6 +177,8 @@
 /* ============ 图表卡 ============ */
 .chart-card{padding:18px 20px 12px}
 .chart-card .t{font-size:12px;color:var(--muted);letter-spacing:.12em;margin-bottom:12px}
+/* 月度柱状图：布局在此定义（原为 inline，移出以便移动端媒体查询覆盖 gap） */
+.bars{display:flex;align-items:flex-end;gap:10px}
 .charts-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media (max-width:1080px){.charts-2col{grid-template-columns:1fr}}
 
@@ -262,3 +264,105 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
 .access-denied .art{font-size:34px;color:var(--faint)}
 .access-denied h2{font-size:18px}
 .access-denied p{color:var(--muted);max-width:360px;font-size:13px}
+
+/* 桌面端：nav-primary/secondary 只是逻辑分组，透明容器，不改变原有竖排外观 */
+.nav-primary{display:flex;flex-direction:column;gap:2px}
+.nav-secondary{display:flex;flex-direction:column;gap:2px}
+.nav-more-btn{display:none}
+
+/* ============================================================
+   移动端适配（≤768px）：侧栏 → 底部图标栏，所有页面拿到全宽
+   ============================================================ */
+@media (max-width:768px){
+  .shell{flex-direction:column}
+
+  /* 侧栏 → 固定底部横向图标栏，只保留 5 主入口 + 更多 */
+  .sidenav{
+    position:fixed;left:0;right:0;bottom:0;top:auto;
+    width:auto;height:auto;flex:none;
+    flex-direction:row;padding:0;
+    border-right:none;border-top:1px solid var(--line);
+    background:var(--surface-2,var(--bg));
+    z-index:50;
+  }
+  .sidenav .logo{display:none}
+  .sidenav .spacer{display:none}
+
+  .nav-primary{
+    flex-direction:row;flex:1;gap:0;width:100%;
+  }
+  .nav-primary a,.nav-more-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;padding:8px 2px;font-size:10.5px;border-radius:0;
+    color:var(--muted);min-width:0;
+  }
+  .nav-primary a .ico,.nav-more-btn .ico{margin:0}
+  .nav-primary a.active{background:transparent;color:var(--brass)}
+  .nav-more-btn{display:flex;border:none;background:transparent}
+
+  /* 次要项默认隐藏，点「更多」弹出为底部面板 */
+  .nav-secondary{
+    position:fixed;left:0;right:0;bottom:0;
+    flex-direction:column;gap:4px;
+    background:var(--surface);border-top:1px solid var(--line);
+    padding:16px 16px calc(16px + env(safe-area-inset-bottom,0));
+    transform:translateY(100%);transition:transform .22s ease;
+    z-index:60;box-shadow:0 -8px 30px rgba(0,0,0,.18);
+  }
+  .nav-secondary.open{transform:translateY(0)}
+  .nav-secondary a,.nav-secondary .theme-toggle,.nav-secondary .logout-btn{
+    width:100%;padding:12px;font-size:14px;
+  }
+  .nav-more-mask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:55}
+
+  /* 页面框架：全宽，收敛内边距，底部给导航栏留白 */
+  .page{padding:16px 14px 88px;max-width:none}
+  .page-full{padding-bottom:64px}
+  .page-head{flex-direction:column;align-items:flex-start;gap:10px}
+  .page-head h1{font-size:20px}
+
+  /* 统计卡：6 列 → 2 列 */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .stat{padding:13px 14px}
+  .stat .v{font-size:22px}
+
+  /* 住宿卡：三列网格 → 竖向堆叠，操作按钮常驻（触屏无 hover） */
+  .stay-card{grid-template-columns:1fr;gap:8px;padding:14px 16px}
+  .stay-card .actions{opacity:1}
+  .prog-actions{opacity:1;position:static;margin-top:10px}
+  .prog .pts{gap:14px;flex-wrap:wrap}
+
+  /* 月度柱状图：12 根柱子，收紧间距防溢出 */
+  .bars{gap:4px}
+
+  /* 地图页：三栏 → 竖向，地图全宽 */
+  .map-layout{flex-direction:column;min-width:0}
+  .map-side{
+    width:100%;flex:none;
+    display:flex;flex-direction:row;gap:8px;overflow-x:auto;
+    max-height:none;padding:12px 14px;border-right:none;border-bottom:1px solid var(--line);
+  }
+  .map-side h2{display:none}
+  .map-side .city-row{flex:0 0 auto;white-space:nowrap}
+  .map-main{min-height:60vh}
+  .map-statbar{flex-wrap:wrap;gap:8px 14px;padding:10px 14px;font-size:11px}
+
+  /* 表单抽屉：全宽 */
+  .drawer{width:100%;max-width:100vw}
+
+  /* Wrapped：大数字防溢出 */
+  .wrapped-card{padding:28px 20px}
+  .wrapped-card .big{font-size:clamp(48px,16vw,72px)}
+  .headline{font-size:24px}
+
+  /* 登录卡内边距收敛 */
+  .login-screen{padding:20px}
+  .login-card{padding:28px 22px}
+}
+
+/* 更小屏（≤400px）：成对输入堆叠、进一步收敛 */
+@media (max-width:400px){
+  .field-row{grid-template-columns:1fr}
+  .stats-grid{gap:8px}
+  .nav-primary a,.nav-more-btn{font-size:10px;padding:7px 1px}
+}

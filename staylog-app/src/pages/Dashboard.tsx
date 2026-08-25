@@ -78,7 +78,7 @@ export default function Dashboard() {
 
       <div className="card chart-card" style={{ marginBottom: 44 }}>
         <div className="t">{year} 年月度住宿晚数</div>
-        <div className="bars" style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 96 }}>
+        <div className="bars" style={{ height: 96 }}>
           {months.map((n, i) => (
             <div key={i} className="bar" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
               <div className="n mono" style={{ fontSize: 10.5, color: "var(--muted)" }}>{n || ""}</div>

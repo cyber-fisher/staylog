@@ -125,6 +125,14 @@ export function IconX(p: IconProps) {
   );
 }
 
+export function IconMenu(p: IconProps) {
+  return (
+    <svg {...base} {...p}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
 export function IconSearch(p: IconProps) {
   return (
     <svg {...base} {...p}>

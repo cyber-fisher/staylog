@@ -9,7 +9,7 @@ import ConfirmDialog from "./components/ConfirmDialog";
 import { useAuth, useCurrentUser } from "./store/auth";
 import { useStaylog } from "./store/staylog";
 import {
-  IconAward, IconBed, IconChart, IconDashboard, IconMap, IconMoon, IconSettings, IconSun, IconX,
+  IconAward, IconBed, IconChart, IconDashboard, IconMap, IconMenu, IconMoon, IconSettings, IconSun, IconX,
 } from "./components/Icons";
 
 const MapPage = lazy(() => import("./pages/MapPage"));
@@ -49,6 +49,8 @@ export default function App() {
   }, [init]);
 
   const [migrateAsk, setMigrateAsk] = useState<{ stays: number; memberships: number } | null>(null);
+  // 移动端「更多」面板开关（次要项：主题/数据管理/用户/退出）
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // 登录用户变化时：切到该用户的隔离空间，并拉云端对账
   useEffect(() => {
@@ -100,6 +102,11 @@ export default function App() {
   const isWrapped = location.pathname.startsWith("/stats/wrapped");
   const isAdmin = currentUser?.role === "admin";
 
+  // 切换路由时关闭移动端「更多」面板
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
+
   // 会话恢复中 → 轻量占位，避免刷新时闪一下登录页
   if (status === "loading") {
     return (
@@ -126,30 +133,40 @@ export default function App() {
             <span className="zh">宿迹</span>
             <span className="en">STAYLOG</span>
           </div>
-          <NavLink to="/" end><span className="ico"><IconDashboard /></span>总览</NavLink>
-          <NavLink to="/stays"><span className="ico"><IconBed /></span>住宿记录</NavLink>
-          <NavLink to="/programs"><span className="ico"><IconAward /></span>常旅客计划</NavLink>
-          <NavLink to="/map"><span className="ico"><IconMap /></span>足迹地图</NavLink>
-          <NavLink to="/stats"><span className="ico"><IconChart /></span>统计分析</NavLink>
-          <div className="spacer" />
-          <button className="theme-toggle" onClick={cycleTheme}>
-            {theme === "dark" ? <IconMoon /> : theme === "light" ? <IconSun /> : <IconMoon opacity={0.5} />}
-            主题：{theme === "system" ? "跟随系统" : theme === "dark" ? "深色" : "浅色"}
-          </button>
-          {/* 数据管理（含高德 Key）仅管理员可见 */}
-          {isAdmin && (
-            <NavLink to="/settings"><span className="ico"><IconSettings /></span>数据管理</NavLink>
-          )}
-          <div className="user-chip">
-            <div className="avatar">{currentUser.username.slice(0, 1).toUpperCase()}</div>
-            <div className="info">
-              <div className="name">{currentUser.username}</div>
-              <div className={`role ${isAdmin ? "admin" : ""}`}>{isAdmin ? "管理员" : "用户"}</div>
-            </div>
+          <div className="nav-primary">
+            <NavLink to="/" end><span className="ico"><IconDashboard /></span>总览</NavLink>
+            <NavLink to="/stays"><span className="ico"><IconBed /></span>住宿记录</NavLink>
+            <NavLink to="/programs"><span className="ico"><IconAward /></span>常旅客计划</NavLink>
+            <NavLink to="/map"><span className="ico"><IconMap /></span>足迹地图</NavLink>
+            <NavLink to="/stats"><span className="ico"><IconChart /></span>统计分析</NavLink>
+            {/* 仅移动端底部栏显示的「更多」入口 */}
+            <button type="button" className="nav-more-btn" onClick={() => setMoreOpen((v) => !v)} aria-label="更多">
+              <span className="ico"><IconMenu /></span>更多
+            </button>
           </div>
-          <button className="logout-btn" onClick={logout}>
-            <span className="ico"><IconX /></span>退出登录
-          </button>
+          <div className="spacer" />
+          <div className={`nav-secondary ${moreOpen ? "open" : ""}`}>
+            <button className="theme-toggle" onClick={cycleTheme}>
+              {theme === "dark" ? <IconMoon /> : theme === "light" ? <IconSun /> : <IconMoon opacity={0.5} />}
+              主题：{theme === "system" ? "跟随系统" : theme === "dark" ? "深色" : "浅色"}
+            </button>
+            {/* 数据管理（含高德 Key）仅管理员可见 */}
+            {isAdmin && (
+              <NavLink to="/settings"><span className="ico"><IconSettings /></span>数据管理</NavLink>
+            )}
+            <div className="user-chip">
+              <div className="avatar">{currentUser.username.slice(0, 1).toUpperCase()}</div>
+              <div className="info">
+                <div className="name">{currentUser.username}</div>
+                <div className={`role ${isAdmin ? "admin" : ""}`}>{isAdmin ? "管理员" : "用户"}</div>
+              </div>
+            </div>
+            <button className="logout-btn" onClick={logout}>
+              <span className="ico"><IconX /></span>退出登录
+            </button>
+          </div>
+          {/* 移动端「更多」面板的背景遮罩 */}
+          {moreOpen && <div className="nav-more-mask" onClick={() => setMoreOpen(false)} />}
         </nav>
       )}
       <Suspense fallback={<main className="page"><div style={{ color: "var(--faint)", padding: 40 }}>加载中…</div></main>}>
