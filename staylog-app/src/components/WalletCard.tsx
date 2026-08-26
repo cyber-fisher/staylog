@@ -13,6 +13,17 @@ interface Props {
   onDelete: (m: Membership) => void;
 }
 
+// 华住按等级复刻真实卡面配色（CSS 皮肤类见 app.css）。星/银/金为浅卡（配深色文字），
+// 铂金为深卡。其余集团/等级用默认宝石深卡（wallet-card 基础样式）。
+function cardSkin(group: string, tierName: string): string {
+  if (group !== "huazhu") return "";
+  if (tierName.includes("铂金")) return "skin-hz-plat";
+  if (tierName.includes("金")) return "skin-hz-gold is-light";
+  if (tierName.includes("银")) return "skin-hz-silver is-light";
+  if (tierName.includes("星")) return "skin-hz-star is-light";
+  return "";
+}
+
 export default function WalletCard({ membership: m, stays, expanded, onToggle, onEdit, onDelete }: Props) {
   const meta = GROUP_META[m.group] ?? GROUP_META.other;
   const year = dayjs().year();
@@ -34,10 +45,12 @@ export default function WalletCard({ membership: m, stays, expanded, onToggle, o
   const tint =
     m.group === "other" && m.customColor ? m.customColor : `var(${meta.cssVar})`;
   const tierLabel = tp.currentEn ? `${tp.currentName} ${tp.currentEn}` : tp.currentName;
+  // 华住按等级复刻真实卡面（星/银/金=浅卡、铂金=深卡）；其余集团用宝石深卡
+  const skin = cardSkin(m.group, tp.currentName);
 
   return (
     <div
-      className={`wallet-card ${expanded ? "expanded" : ""}`}
+      className={`wallet-card ${skin} ${expanded ? "expanded" : ""}`}
       style={{ ["--tint" as string]: tint }}
     >
       {/* 表头：始终可见，收起态只露这条；整条点击展开/收起 */}

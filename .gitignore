@@ -20,3 +20,6 @@ pnpm-debug.log*
 
 # Claude Code 本地会话数据
 .claude
+
+# 华住会官方卡面参考图（版权素材，仅本地用于 CSS 配色复刻，不入库）
+huazhu_png/

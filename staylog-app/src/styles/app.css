@@ -130,6 +130,59 @@
 .wallet-card.expanded:first-child{margin-top:0}
 .wallet-card.expanded + .wallet-card{margin-top:12px}
 
+/* ---- 华住等级卡面（按官方卡样式配色复刻，非原图）---- */
+/* 星会员：薰衣草紫 */
+.wallet-card.skin-hz-star{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #c3b2e8 0%, #b39ede 55%, #a98fd6 100%);
+  border-color:#9f8bd0;
+}
+/* 银会员：冷银金属 */
+.wallet-card.skin-hz-silver{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #dfe3ec 0%, #ccd2e0 55%, #c2c8d8 100%);
+  border-color:#b7bece;
+}
+/* 金会员：香槟金 */
+.wallet-card.skin-hz-gold{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #f4dca2 0%, #ecc880 52%, #e3b866 100%);
+  border-color:#d9ab5a;
+}
+/* 铂金会员：深藏青（深卡，沿用浅文字） */
+.wallet-card.skin-hz-plat{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #454f66 0%, #363f54 50%, #2a3145 100%);
+  border-color:#4a5673;
+}
+
+/* 浅卡面（星/银/金）：文字/点缀翻为深色，保证对比度 */
+.wallet-card.is-light .wc-name{background:none;-webkit-text-fill-color:#2a2536;color:#2a2536}
+.wallet-card.is-light .wc-en{color:rgba(42,37,54,.55)}
+.wallet-card.is-light .wc-tier{background:rgba(255,255,255,.35);color:#2a2536;border-color:rgba(42,37,54,.35)}
+.wallet-card.is-light .wc-summary{color:rgba(42,37,54,.7)}
+.wallet-card.is-light .wc-summary b{color:#241f30}
+.wallet-card.is-light .wc-magstripe{
+  background:linear-gradient(180deg, rgba(0,0,0,.06) 0 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,.5) 50%, rgba(0,0,0,.35));
+}
+.wallet-card.is-light .wc-track .cap{color:rgba(42,37,54,.6)}
+.wallet-card.is-light .wc-track .cap b{color:#241f30}
+.wallet-card.is-light .wc-track .rail{background:rgba(0,0,0,.14)}
+.wallet-card.is-light .wc-note{color:rgba(42,37,54,.5)}
+.wallet-card.is-light .wc-facts{color:rgba(42,37,54,.65)}
+.wallet-card.is-light .wc-facts b{color:#241f30}
+.wallet-card.is-light .wc-cert{color:rgba(42,37,54,.85)}
+.wallet-card.is-light .wc-cert em{color:rgba(42,37,54,.5)}
+.wallet-card.is-light .wc-actions button{background:rgba(0,0,0,.08);color:rgba(42,37,54,.7)}
+.wallet-card.is-light .wc-actions button:hover{color:#241f30}
+/* 浅卡上的 logo 芯片：改哑光深色，避免金箔在浅底上发糊 */
+.wallet-card.is-light .wc-logo{background:linear-gradient(135deg,#3a3346,#2a2536);color:#e8e2f0;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+
 /* 磁条：卡片头部下方横贯，房卡的标志物 */
 .wc-magstripe{
   height:26px;width:100%;

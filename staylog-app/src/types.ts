@@ -105,7 +105,6 @@ export const GROUP_TIERS: Record<LoyaltyGroup, TierDef[]> = {
     { name: "银会员", en: "Silver", nights: 3 },
     { name: "金会员", en: "Gold", nights: 5 },
     { name: "铂金会员", en: "Platinum", nights: 30 },
-    { name: "钻石会员", en: "Diamond", nights: 70 },
   ],
   other: [],
 };
