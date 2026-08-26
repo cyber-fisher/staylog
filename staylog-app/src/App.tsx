@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
 import Dashboard from "./pages/Dashboard";
 import Stays from "./pages/Stays";
 import Programs from "./pages/Programs";
@@ -127,6 +128,7 @@ export default function App() {
 
   return (
     <div className="shell">
+      <Analytics />
       {!isWrapped && (
         <nav className="sidenav" aria-label="主导航">
           <div className="logo serif">
