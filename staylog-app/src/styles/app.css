@@ -245,6 +245,24 @@
 }
 .map-geocoding b{color:var(--brass);font-weight:600;margin:0 2px}
 
+/* HTML 自定义水滴图钉（maplibregl.Marker，尖端 anchor:bottom 精准落点） */
+.map-pin{
+  position:relative;width:30px;height:38px;cursor:pointer;
+  filter:drop-shadow(0 4px 6px rgba(0,0,0,.35));
+  transition:transform .18s cubic-bezier(.2,.8,.2,1),filter .18s ease;
+  transform-origin:50% 100%;
+}
+.map-pin:hover{transform:scale(1.18) translateY(-2px);filter:drop-shadow(0 8px 12px rgba(0,0,0,.45));z-index:2}
+.map-pin-svg{display:block}
+/* 多次入住的次数徽章，贴在图钉右上 */
+.map-pin-badge{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;line-height:1;color:var(--ink);
+  background:var(--brass);border:1.5px solid #fff;border-radius:99px;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+
 /* 底部统计条 */
 .map-statbar{
   position:absolute;left:0;right:0;bottom:0;z-index:5;

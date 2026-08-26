@@ -1,25 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as maplibregl from "maplibre-gl";
-import type { Feature, FeatureCollection, Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStaylog } from "../store/staylog";
-import { aggregateCities, aggregateHotels, distanceKm } from "../lib/stats";
+import { aggregateCities, aggregateHotels, distanceKm, type HotelAgg } from "../lib/stats";
 import { wgs84ToGcj02 } from "../lib/amap";
 import { geocodeCity } from "../lib/geocode";
 import { GROUP_META, type LoyaltyGroup } from "../types";
 import EmptyState from "../components/EmptyState";
 
 // 单一高德栅格底图（style=7 街道图，GCJ-02，中文地名，国内极快）。
-// 之前的 ESRI 深灰 + 双底图切换全部移除——ESRI/demotiles 字体都是海外托管，
-// 国内连不通导致底图空白、聚合数字不显示，是"足迹不显示"的根因之一。
 // 标记坐标统一 WGS-84 存库，显示时 wgs84ToGcj02 投到高德底图（境外为恒等变换）。
 const AMAP_TILES = [1, 2, 3, 4].map(
   (n) => `https://webst0${n}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}`
 );
 
-// 集团配色（硬编码 hex，与 src/styles/tokens.css 的 --hilton 等保持同步；
-// MapLibre paint 表达式读不了 CSS 变量，故此处独立维护一份）。
+// 集团配色（与 src/styles/tokens.css 的 --hilton 等保持同步）。
 const GROUP_HEX: Record<LoyaltyGroup, string> = {
   hilton: "#3f76d4",
   huazhu: "#d97544",
@@ -30,8 +26,6 @@ const BRASS = "#d4a853";
 function buildStyle(): maplibregl.StyleSpecification {
   return {
     version: 8,
-    // 自托管字形（聚合数字文字层需要）：public/font/ 下相对路径，国内可达、离线可用
-    glyphs: "/font/{fontstack}/{range}.pbf",
     sources: {
       amap: { type: "raster", tiles: AMAP_TILES, tileSize: 256, maxzoom: 18, attribution: "© 高德地图" },
     },
@@ -49,6 +43,16 @@ function isDomestic(country: string | undefined): boolean {
   return country.includes("中国") || country.includes("中华人民共和国");
 }
 
+// 水滴图钉的 SVG（尖端在底部中心 14,36，配 anchor:"bottom" 精准落点）。
+function pinSvg(color: string): string {
+  return (
+    `<svg class="map-pin-svg" width="30" height="38" viewBox="0 0 28 36" aria-hidden="true">` +
+    `<path d="M14 0C6.27 0 0 6.27 0 14c0 9.6 14 22 14 22s14-12.4 14-22C28 6.27 21.73 0 14 0z" fill="${color}" stroke="#fff" stroke-width="1.6"/>` +
+    `<circle cx="14" cy="14" r="5.4" fill="#fff"/>` +
+    `</svg>`
+  );
+}
+
 export default function MapPage() {
   const stays = useStaylog((s) => s.stays);
   const updateStay = useStaylog((s) => s.updateStay);
@@ -58,6 +62,7 @@ export default function MapPage() {
 
   const mapRef = useRef<maplibregl.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
 
   const hotels = useMemo(() => aggregateHotels(stays).filter((h) => h.lat != null), [stays]);
   const hotelsRef = useRef(hotels);
@@ -69,7 +74,7 @@ export default function MapPage() {
   // 存量数据自动补全定位的进度提示（{done,total}），完成后清空
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
   const backfillRan = useRef(false);
-  // 是否已把视野框到酒店点（初始 load 与数据 effect 竞争，先到者置位，避免二次抢镜）
+  // 是否已把视野框到酒店点（避免数据多次到达时反复抢镜）
   const didFit = useRef(false);
 
   const homeBase = located[0];
@@ -88,116 +93,44 @@ export default function MapPage() {
     return wgs84ToGcj02(lng, lat);
   }
 
-  // 酒店 GeoJSON（供聚合 source）
-  function buildHotelFC(): FeatureCollection {
-    return {
-      type: "FeatureCollection",
-      features: hotelsRef.current.map((h) => {
-        const [lng, lat] = project(h.lng!, h.lat!);
-        return {
-          type: "Feature",
-          geometry: { type: "Point", coordinates: [lng, lat] },
-          properties: {
-            hotelName: h.hotelName,
-            group: h.group,
-            city: h.city,
-            nights: h.nights,
-            visits: h.visits,
-            avgRating: h.avgRating,
-          },
-        } as Feature;
-      }),
-    };
+  // 点图钉 → 弹卡片（复用现有 popup 样式 + 容器事件委托跳转）
+  function openHotelPopup(map: maplibregl.Map, h: HotelAgg) {
+    const meta = GROUP_META[h.group as LoyaltyGroup] || GROUP_META.other;
+    const rating = h.avgRating != null ? ` · ★ ${h.avgRating}` : "";
+    const html =
+      `<div class="map-popup">` +
+      `<div class="mp-title serif">${escapeHtml(h.hotelName)}</div>` +
+      `<div class="mp-meta"><span class="chip ${meta.className}">${escapeHtml(meta.short)}</span>` +
+      `<span class="sub">${escapeHtml(h.city)} · 住过 ${h.visits} 次 · 共 ${h.nights} 晚${rating}</span></div>` +
+      `<button class="map-popup-cta" data-hotel="${escapeHtml(h.hotelName)}">查看入住记录 →</button>` +
+      `</div>`;
+    new maplibregl.Popup({ offset: 34, closeButton: true })
+      .setLngLat(project(h.lng!, h.lat!))
+      .setHTML(html)
+      .addTo(map);
   }
 
-  // 幂等地保证标记 source+图层就位并携带最新数据。
-  // 关键：慢网/离线子资源下 isStyleLoaded() 可能长期为 false（栅格瓦片/字形仍在拉），
-  // 但此时 addSource/setData 其实已可用。故不用 isStyleLoaded() 做闸门——
-  // source 已存在就直接 setData；不存在就尝试 addSource，若抛"Style not done loading"
-  // 再挂一次 'load' 重试。这样"数据先到、样式后到"或反之都能收敛，不会卡成空图。
-  function ensureMarkers() {
+  // 用 HTML 自定义图钉重建全部标记（DOM 标记不依赖 style 就绪，天然规避加载时序竞态）。
+  function syncMarkers() {
     const map = mapRef.current;
     if (!map) return;
-    const existing = map.getSource("hotels") as maplibregl.GeoJSONSource | undefined;
-    if (existing) {
-      existing.setData(buildHotelFC());
-      return;
-    }
-    try {
-      map.addSource("hotels", {
-        type: "geojson",
-        data: buildHotelFC(),
-        cluster: true,
-        clusterRadius: 46,
-        clusterMaxZoom: 11,
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+    for (const h of hotelsRef.current) {
+      const color = GROUP_HEX[h.group as LoyaltyGroup] ?? BRASS;
+      const el = document.createElement("div");
+      el.className = "map-pin";
+      el.title = h.hotelName;
+      el.innerHTML = pinSvg(color) + (h.visits > 1 ? `<span class="map-pin-badge">${h.visits}</span>` : "");
+      el.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openHotelPopup(map, h);
       });
-    } catch {
-      // 样式尚未就绪（addSource 抛错）——等 load 再来一次
-      map.once("load", () => ensureMarkers());
-      return;
+      const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
+        .setLngLat(project(h.lng!, h.lat!))
+        .addTo(map);
+      markersRef.current.push(marker);
     }
-
-    // 聚合圆（黄铜色，按数量分档）+ 光晕描边
-    map.addLayer({
-      id: "clusters",
-      type: "circle",
-      source: "hotels",
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-color": ["step", ["get", "point_count"], "#d4a853", 10, "#b98a3e", 25, "#9c7330"],
-        "circle-radius": ["step", ["get", "point_count"], 16, 10, 21, 25, 27],
-        "circle-stroke-width": 6,
-        "circle-stroke-color": "rgba(212,168,83,0.35)",
-      },
-    });
-    map.addLayer({
-      id: "cluster-count",
-      type: "symbol",
-      source: "hotels",
-      filter: ["has", "point_count"],
-      layout: {
-        "text-field": ["get", "point_count_abbreviated"],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": 13,
-        "text-allow-overlap": true,
-      },
-      paint: { "text-color": "#0d1320" },
-    });
-    // 单点光晕
-    map.addLayer({
-      id: "unclustered-glow",
-      type: "circle",
-      source: "hotels",
-      filter: ["!", ["has", "point_count"]],
-      paint: {
-        "circle-color": groupColorExpr(),
-        "circle-radius": ["interpolate", ["linear"], ["get", "nights"], 1, 12, 20, 19, 40, 24],
-        "circle-blur": 1,
-        "circle-opacity": 0.35,
-      },
-    });
-    // 单点主体（按集团配色）
-    map.addLayer({
-      id: "unclustered",
-      type: "circle",
-      source: "hotels",
-      filter: ["!", ["has", "point_count"]],
-      paint: {
-        "circle-color": groupColorExpr(),
-        "circle-radius": ["interpolate", ["linear"], ["get", "nights"], 1, 6, 20, 13, 40, 18],
-        "circle-stroke-width": 1.5,
-        "circle-stroke-color": "#0d1320",
-      },
-    });
-  }
-
-  function groupColorExpr(): maplibregl.ExpressionSpecification {
-    return [
-      "match", ["get", "group"],
-      "hilton", GROUP_HEX.hilton,
-      "huazhu", GROUP_HEX.huazhu,
-      BRASS, // 默认（other 及未知/旧集团）
-    ];
   }
 
   useEffect(() => {
@@ -212,54 +145,12 @@ export default function MapPage() {
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
 
-    map.on("load", () => {
-      ensureMarkers();
-      if (hotelsRef.current.length > 0) {
-        didFit.current = true;
-        fitToHotels(0);
-      }
-
-      // 点聚合 → 展开放大（v6：getClusterExpansionZoom 返回 Promise）
-      map.on("click", "clusters", async (e) => {
-        const f = map.queryRenderedFeatures(e.point, { layers: ["clusters"] })[0];
-        const clusterId = f.properties!.cluster_id;
-        const src = map.getSource("hotels") as maplibregl.GeoJSONSource;
-        const zoom = await src.getClusterExpansionZoom(clusterId);
-        map.easeTo({ center: (f.geometry as Point).coordinates as [number, number], zoom });
-      });
-
-      // 点单个酒店 → 弹卡片
-      map.on("click", "unclustered", (e) => {
-        const f = e.features![0];
-        const p = f.properties!;
-        const coords = (f.geometry as Point).coordinates.slice() as [number, number];
-        const meta = GROUP_META[p.group as LoyaltyGroup] || GROUP_META.other;
-        const rating = p.avgRating != null ? ` · ★ ${p.avgRating}` : "";
-        const html =
-          `<div class="map-popup">` +
-          `<div class="mp-title serif">${escapeHtml(p.hotelName)}</div>` +
-          `<div class="mp-meta"><span class="chip ${meta.className}">${escapeHtml(meta.short)}</span>` +
-          `<span class="sub">${escapeHtml(p.city)} · 住过 ${p.visits} 次 · 共 ${p.nights} 晚${rating}</span></div>` +
-          `<button class="map-popup-cta" data-hotel="${escapeHtml(String(p.hotelName))}">查看入住记录 →</button>` +
-          `</div>`;
-        new maplibregl.Popup({ offset: 16, closeButton: true }).setLngLat(coords).setHTML(html).addTo(map);
-      });
-
-      for (const layer of ["clusters", "unclustered"]) {
-        map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
-        map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
-      }
-    });
-
-    // 兜底：'idle' 在地图首次渲染稳定后触发，比 'load'/isStyleLoaded 更可靠。
-    // 若 load 时序异常导致标记没建/没数据，这里再收敛一次。
-    map.once("idle", () => {
-      ensureMarkers();
-      if (!didFit.current && hotelsRef.current.length > 0) {
-        didFit.current = true;
-        fitToHotels(0);
-      }
-    });
+    // DOM 标记可在建图后立即添加，无需等 'load'
+    syncMarkers();
+    if (hotelsRef.current.length > 0) {
+      didFit.current = true;
+      fitToHotels(0);
+    }
 
     // popup 里的"查看入住记录"按钮在 React 树外，用容器事件委托桥接到路由
     const container = map.getContainer();
@@ -271,22 +162,19 @@ export default function MapPage() {
 
     return () => {
       container.removeEventListener("click", onDelegatedClick);
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
       map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stays.length === 0]);
 
-  // 酒店数据变化 → 幂等收敛标记（慢网下 source 可能尚未建，ensureMarkers 会补建而非被吞掉）。
-  // style 未就绪时补挂一次 'load' 兜底，确保数据先到、底图后到的顺序也能落点。
-  // 首次拿到点时把视野框过去（应对云端数据晚于建图到达的情况）。
+  // 酒店数据变化（含存量补全逐个落坐标）→ 重建图钉；首次拿到点时框景。
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const firstPoints = !didFit.current && hotels.length > 0;
-    // ensureMarkers 自带"样式未就绪则挂 load 重试"，这里无需再判 isStyleLoaded
-    ensureMarkers();
-    if (firstPoints) {
+    if (!mapRef.current) return;
+    syncMarkers();
+    if (!didFit.current && hotels.length > 0) {
       didFit.current = true;
       fitToHotels(0);
     }
