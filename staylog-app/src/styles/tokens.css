@@ -1,43 +1,59 @@
-/* ============ 宿迹 STAYLOG design tokens: dark-first（深夜大堂）============ */
+/* ============ 宿迹 STAYLOG design tokens: 房卡钱包（Keycard Wallet）============
+   石墨黑 + 香槟金箔。整个 app 像一叠高端酒店房卡：烫金压印、磁条、钢印数字。
+   材质是主角，金色只在压印/描边处出现，不做大面积填色。 */
 :root{
-  --ink:#0d1320;          /* 页面底 */
-  --surface:#151d2e;      /* 卡片 */
-  --surface-2:#1b2438;    /* 卡片内层/悬浮 */
-  --line:#273350;         /* 分隔线 */
-  --text:#e9edf5;
-  --muted:#8d97ad;
-  --faint:#5b6580;
-  --brass:#d4a853;        /* 黄铜主色 */
-  --brass-soft:rgba(212,168,83,.14);
-  --good:#4cc38a;
+  --ink:#0b0d10;          /* 页面底：中性石墨黑（去蓝调，与旧风格拉开） */
+  --surface:#15171c;      /* 卡面 */
+  --surface-2:#1d2027;    /* 卡片内层/悬浮 */
+  --line:#2b2f38;         /* 分隔线 */
+  --text:#ece8e0;         /* 暖白（偏暖，非蓝白） */
+  --muted:#9a9488;
+  --faint:#615c53;
+  /* 香槟金：主强调色。--brass 保留为别名，兼容既有大量 var(--brass) 引用 */
+  --gold:#c9a24b;
+  --brass:var(--gold);
+  --gold-soft:rgba(201,162,75,.14);
+  --brass-soft:var(--gold-soft);
+  /* 金箔渐变：烫金压印/主按钮/logo 的核心材质 */
+  --gold-foil:linear-gradient(135deg,#f4d78a 0%,#c9a24b 42%,#9a7a34 100%);
+  /* 卡片"实体厚度"：顶部一线高光 + 底部投影 */
+  --emboss:inset 0 1px 0 rgba(255,255,255,.06), 0 10px 30px rgba(0,0,0,.45);
+  --radius-card:14px;
+  --good:#5bbe8a;
   --warn:#e0aa4e;
-  --danger:#e06060;
-  --map-dot:#2c3a5c;
-  --map-glow:rgba(212,168,83,.35);
+  --danger:#e0655f;
+  --map-dot:#2c313a;
+  --map-glow:rgba(201,162,75,.35);
   --hilton:#3f76d4;
   --huazhu:#d97544;
-  --other:#7a8499;
-  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --other:#8a94a6;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
-    --ink:#f1efe9; --surface:#faf9f5; --surface-2:#efede5;
-    --line:#ddd8ca; --text:#1c2334; --muted:#6b7386; --faint:#98a0b2;
-    --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
+    --ink:#e8e4da; --surface:#f5f1e8; --surface-2:#ebe6da;
+    --line:#d6cfc0; --text:#1a1d24; --muted:#6b6559; --faint:#9a9384;
+    --gold:#8f6d24; --gold-soft:rgba(143,109,36,.14);
+    --brass:var(--gold); --brass-soft:var(--gold-soft);
+    --gold-foil:linear-gradient(135deg,#c9a24b 0%,#a5822f 45%,#8f6d24 100%);
+    --emboss:inset 0 1px 0 rgba(255,255,255,.6), 0 8px 22px rgba(90,78,52,.16);
     --good:#2b9463; --warn:#a4791f; --danger:#bf4040;
-    --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
+    --map-dot:#d3cebd; --map-glow:rgba(143,109,36,.35);
     --hilton:#2a5cb8; --huazhu:#c25c2d; --other:#6b7386;
-    --shadow:0 8px 24px rgba(60,55,40,.12);
+    --shadow:0 8px 24px rgba(90,78,52,.16);
   }
 }
 :root[data-theme="light"]{
-  --ink:#f1efe9; --surface:#faf9f5; --surface-2:#efede5;
-  --line:#ddd8ca; --text:#1c2334; --muted:#6b7386; --faint:#98a0b2;
-  --brass:#a97f2d; --brass-soft:rgba(169,127,45,.12);
+  --ink:#e8e4da; --surface:#f5f1e8; --surface-2:#ebe6da;
+  --line:#d6cfc0; --text:#1a1d24; --muted:#6b6559; --faint:#9a9384;
+  --gold:#8f6d24; --gold-soft:rgba(143,109,36,.14);
+  --brass:var(--gold); --brass-soft:var(--gold-soft);
+  --gold-foil:linear-gradient(135deg,#c9a24b 0%,#a5822f 45%,#8f6d24 100%);
+  --emboss:inset 0 1px 0 rgba(255,255,255,.6), 0 8px 22px rgba(90,78,52,.16);
   --good:#2b9463; --warn:#a4791f; --danger:#bf4040;
-  --map-dot:#d3cebd; --map-glow:rgba(169,127,45,.35);
+  --map-dot:#d3cebd; --map-glow:rgba(143,109,36,.35);
   --hilton:#2a5cb8; --huazhu:#c25c2d; --other:#6b7386;
-  --shadow:0 8px 24px rgba(60,55,40,.12);
+  --shadow:0 8px 24px rgba(90,78,52,.16);
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -51,8 +67,10 @@ body{
   font-family:-apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
   font-size:14px; line-height:1.6; min-height:100vh;
 }
-.serif{font-family:"Palatino","Iowan Old Style","Times New Roman","Songti SC","SimSun",serif}
-.mono{font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums}
+/* 展示体：衬线，标题收紧字距、加重字重 —— 证书/凭证质感 */
+.serif{font-family:"Palatino","Iowan Old Style","Times New Roman","Songti SC","SimSun",serif;letter-spacing:.01em}
+/* 数据体：等宽 + 拉开字距 —— 卡面钢印数字质感 */
+.mono{font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums;letter-spacing:.02em}
 
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 input,select,textarea{
@@ -65,22 +83,26 @@ a{color:inherit}
 
 /* 通用卡片与控件 */
 .card{
-  background:var(--surface);border:1px solid var(--line);border-radius:12px;
-  box-shadow:var(--shadow);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);
+  box-shadow:var(--emboss);
   transition:transform .24s cubic-bezier(.2,.8,.2,1),border-color .2s ease,box-shadow .24s ease;
 }
 .btn{
-  display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:8px;
+  display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:9px;
   border:1px solid var(--line);background:var(--surface-2);font-size:13.5px;
   transition:transform .16s ease,border-color .2s ease,background .2s ease,filter .2s ease,box-shadow .2s ease;
 }
-.btn:hover{border-color:var(--brass);transform:translateY(-1px)}
+.btn:hover{border-color:var(--gold);transform:translateY(-1px)}
 .btn:active{transform:translateY(1px) scale(.98)}
-.btn-primary{background:var(--brass);border-color:var(--brass);color:var(--ink);font-weight:600}
-.btn-primary:hover{filter:brightness(1.08);box-shadow:0 7px 18px color-mix(in srgb,var(--brass) 24%,transparent)}
+/* 主按钮 = 烫金：金箔渐变 + 顶部一线高光，压印感而非纯色块 */
+.btn-primary{
+  background:var(--gold-foil);border:none;color:#241c08;font-weight:700;letter-spacing:.02em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 4px 12px color-mix(in srgb,var(--gold) 30%,transparent);
+}
+.btn-primary:hover{filter:brightness(1.06) saturate(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 8px 20px color-mix(in srgb,var(--gold) 36%,transparent)}
 .btn-danger{color:var(--danger);border-color:var(--danger)}
 .chip{
-  font-size:10.5px;letter-spacing:.08em;padding:2px 9px;border-radius:99px;
+  font-size:10.5px;letter-spacing:.1em;padding:2px 9px;border-radius:99px;
   border:1px solid var(--bc,var(--line));color:var(--bc,var(--muted));
 }
 .b-hilton{--bc:var(--hilton)} .b-huazhu{--bc:var(--huazhu)} .b-other{--bc:var(--other)}

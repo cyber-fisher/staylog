@@ -43,6 +43,10 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
   const poiAbort = useRef<AbortController | null>(null);
   // 选中候选后短暂抑制再次搜索，避免回填酒店名又触发一轮
   const suppressSearch = useRef(false);
+  // 已由高德 POI 精确定位（锁定坐标，防 lookupCoords 用城市中心覆盖）
+  const poiLocated = useRef(false);
+  // geocode 请求序号，只接受最新一次结果（防后发先至）
+  const geoSeq = useRef(0);
 
   useEffect(() => {
     if (open) {
@@ -52,6 +56,8 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
       setPoiOpen(false);
       setPoiStatus("idle");
       setBrandHint("");
+      // 编辑已有记录且带坐标时视为已定位；新记录重置
+      poiLocated.current = initial?.lat != null;
     }
   }, [open, initial]);
 
@@ -108,6 +114,11 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
   // 选中一条高德候选：回填名称、城市、国家、坐标，并跑品牌识别
   function pickPoi(p: AmapPoi) {
     suppressSearch.current = true;
+    // 取消在途/待触发的搜索，否则残留 debounce 会重新弹出候选列表
+    window.clearTimeout(poiTimer.current);
+    poiAbort.current?.abort();
+    // POI 坐标是精确点位，标记为已锁定，避免随后改城市名时被 lookupCoords 覆盖
+    poiLocated.current = true;
     setForm((f) => ({
       ...f,
       hotelName: p.name,
@@ -125,10 +136,14 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
   function lookupCoords(city: string, country: string) {
     window.clearTimeout(geoTimer.current);
     if (!city.trim()) { setGeoStatus("idle"); return; }
-    // 已由高德定位则不再覆盖
+    // 已由高德 POI 精确定位则不再用城市中心点覆盖
+    if (poiLocated.current) return;
     setGeoStatus("loading");
+    const seq = ++geoSeq.current;
     geoTimer.current = window.setTimeout(async () => {
       const result = await geocodeCity(`${city} ${country}`.trim());
+      // 只接受最新一次请求的结果，避免"城市+国家连改时后发先至"写入旧坐标
+      if (seq !== geoSeq.current) return;
       if (result) {
         setForm((f) => ({ ...f, lat: result.lat, lng: result.lng }));
         setGeoStatus("ok");
@@ -220,13 +235,13 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
             <div className="field">
               <label htmlFor="city">城市</label>
               <input id="city" required value={form.city}
-                onChange={(e) => { set("city", e.target.value); lookupCoords(e.target.value, form.country); }}
+                onChange={(e) => { poiLocated.current = false; set("city", e.target.value); lookupCoords(e.target.value, form.country); }}
                 placeholder="东京" />
             </div>
             <div className="field">
               <label htmlFor="country">国家/地区</label>
               <input id="country" required value={form.country}
-                onChange={(e) => { set("country", e.target.value); lookupCoords(form.city, e.target.value); }}
+                onChange={(e) => { poiLocated.current = false; set("country", e.target.value); lookupCoords(form.city, e.target.value); }}
                 placeholder="日本" />
             </div>
           </div>

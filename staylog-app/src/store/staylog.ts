@@ -6,6 +6,7 @@ import {
   enqueue,
   flush,
   reconcile,
+  mergeLatest,
   stayToRow,
   membershipToRow,
 } from "../lib/sync";
@@ -217,11 +218,20 @@ export const useStaylog = create<StaylogState>()(
         set((s) => applyToActive(s, () => ({ stays, memberships }))),
 
       reconcileActive: async () => {
-        const { activeUserId, stays, memberships } = get();
+        const before = get();
+        const { activeUserId } = before;
         if (!activeUserId) return true;
         try {
-          const res = await reconcile({ stays, memberships });
-          get().hydrateActive(res.stays, res.memberships);
+          const res = await reconcile({ stays: before.stays, memberships: before.memberships });
+          // await 期间用户可能又改过数据；把 reconcile 结果与「最新本地」再做一次 LWW 合并，
+          // 避免用基于旧快照的结果整体覆盖刚做的编辑（编辑会 bump updatedAt 而胜出）。
+          // 仍是同一用户时才并入（期间切号则丢弃本次结果，交给新用户的 reconcile）。
+          const after = get();
+          if (after.activeUserId !== activeUserId) return res.cloudWasEmpty;
+          get().hydrateActive(
+            mergeLatest(res.stays, after.stays),
+            mergeLatest(res.memberships, after.memberships)
+          );
           return res.cloudWasEmpty;
         } catch (e) {
           console.warn("[staylog] reconcile 失败（离线？稍后重试）:", e);

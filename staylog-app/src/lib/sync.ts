@@ -39,6 +39,16 @@ export function enqueue(op: OutboxOp) {
 export function outboxSize(): number {
   return Object.keys(loadOutbox()).length;
 }
+/** 从 outbox 移除一个 op（重新读最新 box 再删，避免覆盖 await 期间新入队的 op）。 */
+function dequeue(key: string) {
+  const box = loadOutbox();
+  delete box[key];
+  saveOutbox(box);
+}
+/** 清空整个 outbox（登出 / 清空数据时调用，避免残留 op 携旧 user_id 卡队）。 */
+export function clearOutbox() {
+  localStorage.removeItem(OUTBOX_KEY);
+}
 
 // ---- 映射器（camelCase <-> snake_case；tags/certificates 走 JSONB 直通）----
 export function stayToRow(s: Stay, userId: string): StayRow {
@@ -139,8 +149,11 @@ export async function flush(): Promise<void> {
   if (flushing) return;
   flushing = true;
   try {
-    const box = loadOutbox();
-    for (const [key, op] of Object.entries(box)) {
+    // 迭代起始快照里的 op；但每条成功后用 dequeue（重新读最新 outbox 再删该 key），
+    // 这样 await 期间用户新入队的 op 不会被旧快照整体覆盖丢失。
+    const snapshot = loadOutbox();
+    let anyRetryLeft = false;
+    for (const [key, op] of Object.entries(snapshot)) {
       let error;
       if (op.op === "delete") {
         // 软删除：只更新 deleted_at/updated_at 两列，避免 upsert 触发 NOT NULL 约束
@@ -156,26 +169,38 @@ export async function flush(): Promise<void> {
       if (error) {
         // 网络/权限错误：保留该 op 等下次重试；其余继续尝试
         console.warn("[sync] flush 失败，保留重试:", op.table, op.row.id, error.message);
+        anyRetryLeft = true;
         continue;
       }
-      delete box[key];
-      saveOutbox(box);
+      dequeue(key);
     }
+    // await 期间可能有新 op 入队；若还有残留（且非全是失败保留），再跑一轮清干净
+    flushing = false;
+    if (!anyRetryLeft && outboxSize() > 0) await flush();
   } finally {
     flushing = false;
   }
 }
 
 // ---- pull：拉当前用户全部行（RLS 已限本人），保留 deleted_at 供合并 ----
+// 分页拉全：Supabase 单次默认最多 1000 行，超出会被静默截断，故按 range 循环到取完。
+const PAGE = 1000;
+async function pullAll<T>(table: "stays" | "memberships"): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase.from(table).select("*").range(from, from + PAGE - 1);
+    if (error) throw error;
+    const rows = (data as T[]) || [];
+    out.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return out;
+}
 async function pullStays(): Promise<StayRow[]> {
-  const { data, error } = await supabase.from("stays").select("*");
-  if (error) throw error;
-  return (data as StayRow[]) || [];
+  return pullAll<StayRow>("stays");
 }
 async function pullMemberships(): Promise<MembershipRow[]> {
-  const { data, error } = await supabase.from("memberships").select("*");
-  if (error) throw error;
-  return (data as MembershipRow[]) || [];
+  return pullAll<MembershipRow>("memberships");
 }
 
 /** LWW 合并：按 id 分组，updatedAt 较新者胜；丢弃带 deleted_at 的墓碑。 */
@@ -241,6 +266,18 @@ export async function reconcile(local: {
     memberships: mergeMemberships(local.memberships, cloudMemberships),
     cloudWasEmpty,
   };
+}
+
+/** 两组同类记录按 id + updatedAt LWW 合并（用于 reconcile 期间本地又有编辑时，
+ *  把 await 后的最新本地编辑并回合并结果，避免被旧快照结果整体覆盖）。 */
+export function mergeLatest<T extends { id: string; updatedAt?: string }>(a: T[], b: T[]): T[] {
+  const map = new Map<string, T>();
+  for (const x of a) map.set(x.id, x);
+  for (const x of b) {
+    const cur = map.get(x.id);
+    if (!cur || (x.updatedAt || "") > (cur.updatedAt || "")) map.set(x.id, x);
+  }
+  return [...map.values()];
 }
 
 /** 拉取当前用户的 profile（用户名与角色）。 */

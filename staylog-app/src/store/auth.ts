@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
-import { fetchProfile } from "../lib/sync";
+import { fetchProfile, flush, clearOutbox } from "../lib/sync";
 
 export type Role = "admin" | "user";
 
@@ -88,6 +88,14 @@ export const useAuth = create<AuthState>()((set) => ({
   },
 
   logout: async () => {
+    // 登出前趁 session 仍有效，尽力把待同步写入推上云；再清 outbox，
+    // 避免残留 op 携旧 user_id 在下一个会话被 RLS 拒、无限重试卡队。
+    try {
+      await flush();
+    } catch (e) {
+      console.warn("[auth] 登出前 flush 失败（离线？未同步项将丢弃）:", e);
+    }
+    clearOutbox();
     await supabase.auth.signOut();
     set({ session: null, profile: null, status: "anon" });
   },

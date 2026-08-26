@@ -105,7 +105,7 @@ export default function Programs() {
       {memberships.length === 0 ? (
         <div className="card empty">
           <h2 className="serif">还没有添加常旅客计划</h2>
-          <p>添加希尔顿、万豪、IHG、凯悦等会籍后，每次录入住宿都会自动累计定级进度。</p>
+          <p>添加希尔顿、华住等会籍后，每次录入住宿都会自动累计定级进度。</p>
           <div className="row">
             <button className="btn btn-primary" onClick={openNew}>
               <IconPlus width={14} height={14} /> 添加计划

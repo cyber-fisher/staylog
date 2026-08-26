@@ -19,9 +19,9 @@ const AMAP_TILES = [1, 2, 3, 4].map(
 const GROUP_HEX: Record<LoyaltyGroup, string> = {
   hilton: "#3f76d4",
   huazhu: "#d97544",
-  other: "#d4a853", // 黄铜 --brass
+  other: "#c9a24b", // 香槟金 --gold
 };
-const BRASS = "#d4a853";
+const BRASS = "#c9a24b";
 
 function buildStyle(): maplibregl.StyleSpecification {
   return {

@@ -1,21 +1,62 @@
+/* ============ 房卡材质工具类（全站复用）============
+   签名语言：烫金压印文字、磁条、钢印数字。金色只在这些材质处出现。 */
+/* 烫金压印文字：金箔渐变裁进字形，降级为纯 --gold */
+.foil-text{
+  color:var(--gold);
+  background:var(--gold-foil);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 1px 0 rgba(0,0,0,.18);
+}
+@supports not ((-webkit-background-clip:text) or (background-clip:text)){
+  .foil-text{background:none;-webkit-text-fill-color:currentColor;color:var(--gold)}
+}
+/* 磁条：房卡顶部哑光深带 + 一线高光，横贯卡面 */
+.magstripe{
+  height:26px;width:100%;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.05) 0 1px, transparent 1px),
+    linear-gradient(90deg, #0c0d10, #191b20 50%, #0c0d10);
+  border-top:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid rgba(0,0,0,.4);
+}
+/* 钢印数字：等宽 + 微内凹阴影，像卡面压出来的号码 */
+.emboss-num{
+  font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums;
+  letter-spacing:.06em;
+  text-shadow:0 1px 0 rgba(255,255,255,.06), 0 -1px 0 rgba(0,0,0,.3);
+}
+/* linen/纸纹：极淡斜织纹，叠在卡面上做材质感（性能无碍，reduced-motion 无关） */
+.texture-linen{
+  background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.015) 0 2px, transparent 2px 4px);
+}
+
 /* ============ 应用外壳与页面布局 ============ */
 .shell{display:flex;min-height:100vh}
 .sidenav{
   width:216px;flex:0 0 216px;position:sticky;top:0;height:100vh;
   border-right:1px solid var(--line);padding:28px 18px;
-  display:flex;flex-direction:column;gap:4px;background:var(--ink);
+  display:flex;flex-direction:column;gap:4px;
+  /* 钱包封套：石墨黑叠极淡斜织纹，像皮质卡夹内衬 */
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, color-mix(in srgb,var(--ink) 92%,#000) 0%, var(--ink) 100%);
 }
 .logo{display:flex;align-items:baseline;gap:8px;padding:0 10px;margin-bottom:26px}
-.logo .zh{font-size:26px;letter-spacing:.12em;color:var(--brass);animation:logo-arrive .7s cubic-bezier(.2,.8,.2,1) both}
+/* 品牌名烫金压印 */
+.logo .zh{font-size:26px;letter-spacing:.12em;font-weight:700;animation:logo-arrive .7s cubic-bezier(.2,.8,.2,1) both;
+  color:var(--gold);background:var(--gold-foil);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@supports not ((-webkit-background-clip:text) or (background-clip:text)){.logo .zh{-webkit-text-fill-color:currentColor}}
 .logo .en{font-size:10px;letter-spacing:.28em;color:var(--faint)}
 .sidenav a{
   display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
-  color:var(--muted);text-decoration:none;font-size:13.5px;transition:background .2s,color .2s,transform .2s ease;
+  color:var(--muted);text-decoration:none;font-size:13.5px;transition:background .2s,color .2s,transform .2s ease,box-shadow .2s ease;
 }
 .sidenav a:hover{background:var(--surface);color:var(--text);transform:translateX(3px)}
-.sidenav a.active{background:var(--surface);color:var(--brass)}
+/* active：金箔左边框，像卡夹里被抽出的那张 */
+.sidenav a.active{background:var(--surface);color:var(--gold);box-shadow:inset 3px 0 0 var(--gold)}
 .sidenav a .ico{width:16px;text-align:center;color:var(--faint)}
-.sidenav a:hover .ico,.sidenav a.active .ico{color:var(--brass)}
+.sidenav a:hover .ico,.sidenav a.active .ico{color:var(--gold)}
 .sidenav a .ico svg{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
 .sidenav a:hover .ico svg{transform:scale(1.12)}
 .sidenav .spacer{flex:1}
@@ -70,71 +111,88 @@
 .stay-card .actions button:hover{color:var(--brass);background:var(--surface-2)}
 .stay-card .actions button.del:hover{color:var(--danger)}
 
-/* ============ 会籍卡包（Apple Wallet 叠放·点击展开）============ */
+/* ============ 会籍卡包（房卡质感·叠放·点击展开）============ */
 .wallet-stack{display:flex;flex-direction:column;padding-top:6px}
 .wallet-card{
-  position:relative;border-radius:16px;overflow:hidden;
+  position:relative;border-radius:var(--radius-card);overflow:hidden;
+  /* 卡面：集团宝石色向石墨黑压暗的斜向渐变，像哑光 PVC 房卡 */
   background:
-    linear-gradient(155deg, color-mix(in srgb,var(--tint) 30%,var(--surface)) 0%,
-                    var(--surface) 60%);
-  border:1px solid color-mix(in srgb,var(--tint) 45%,var(--line));
-  box-shadow:0 -6px 20px rgba(0,0,0,.30);
+    repeating-linear-gradient(45deg, rgba(255,255,255,.02) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, color-mix(in srgb,var(--tint) 42%,#0c0e12) 0%,
+                    color-mix(in srgb,var(--tint) 14%,#0c0e12) 46%, #0c0e12 100%);
+  border:1px solid color-mix(in srgb,var(--tint) 40%,var(--line));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 -6px 20px rgba(0,0,0,.30);
   margin-top:-64px;transition:margin .32s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease,transform .24s ease;
   animation:card-enter .4s cubic-bezier(.2,.8,.2,1) both;
 }
-.wallet-card::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--tint)}
 .wallet-card:first-child{margin-top:0}
-/* 展开的卡、以及紧随其后的那张，都要留出完整间距 */
-.wallet-card.expanded{margin-top:12px;box-shadow:0 10px 30px rgba(0,0,0,.38)}
-.wallet-card.expanded{transform:translateY(-2px)}
+.wallet-card.expanded{margin-top:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 14px 34px rgba(0,0,0,.45);transform:translateY(-2px)}
 .wallet-card.expanded:first-child{margin-top:0}
 .wallet-card.expanded + .wallet-card{margin-top:12px}
+
+/* 磁条：卡片头部下方横贯，房卡的标志物 */
+.wc-magstripe{
+  height:26px;width:100%;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.06) 0 1px, transparent 1px),
+    linear-gradient(90deg, #0a0b0e, #1a1c22 50%, #0a0b0e);
+  border-top:1px solid rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(0,0,0,.45);
+}
 
 .wc-head{
   display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
   padding:16px 20px 14px;text-align:left;
 }
 .wc-brand{display:flex;align-items:center;gap:12px;min-width:0}
+/* logo 芯片：金箔浮雕小方块，像房卡上的 IC 触点 */
 .wc-logo{
-  width:34px;height:34px;border-radius:9px;flex:0 0 auto;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--tint);color:#fff;box-shadow:0 2px 8px color-mix(in srgb,var(--tint) 50%,transparent)}
+  width:34px;height:26px;border-radius:5px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;color:#241c08;
+  background:var(--gold-foil);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 2px rgba(0,0,0,.3);
+}
 .wc-names{display:flex;flex-direction:column;min-width:0}
-.wc-name{font-size:15.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wc-en{font-size:10px;letter-spacing:.16em;color:var(--faint)}
+/* 集团名：烫金压印 */
+.wc-name{font-size:15.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:var(--gold);background:var(--gold-foil);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@supports not ((-webkit-background-clip:text) or (background-clip:text)){.wc-name{-webkit-text-fill-color:currentColor}}
+.wc-en{font-size:10px;letter-spacing:.22em;color:color-mix(in srgb,var(--text) 55%,transparent)}
+/* 等级：烫金描边 pill */
 .wc-tier{
-  font-size:11.5px;letter-spacing:.1em;padding:5px 12px;border-radius:99px;white-space:nowrap;flex:0 0 auto;
-  background:color-mix(in srgb,var(--tint) 22%,transparent);
-  color:color-mix(in srgb,var(--tint) 70%,var(--text));
-  border:1px solid color-mix(in srgb,var(--tint) 45%,transparent);
+  font-size:11px;letter-spacing:.14em;padding:5px 12px;border-radius:99px;white-space:nowrap;flex:0 0 auto;
+  background:rgba(0,0,0,.25);
+  color:var(--gold);
+  border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);
 }
 .wc-logo svg{transition:transform .32s cubic-bezier(.2,.8,.2,1)}
 .wallet-card.expanded .wc-logo svg{transform:rotate(-8deg) scale(1.12)}
-.wc-summary{display:flex;gap:22px;padding:0 20px 16px;font-size:12.5px;color:var(--muted)}
-.wc-summary b{color:var(--text);font-weight:600}
+/* 摘要行：钢印数字，卡号质感 */
+.wc-summary{display:flex;gap:22px;padding:0 20px 16px;font-size:12.5px;color:color-mix(in srgb,var(--text) 60%,transparent)}
+.wc-summary b{color:var(--text);font-weight:600;font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums;letter-spacing:.06em}
 
-/* 展开体：收起时高度归零 */
+/* 展开体：收起时高度归零。卡面恒为深色（真房卡质感），故内部文字用固定浅色，不随主题反转 */
 .wc-body{
   max-height:0;opacity:0;overflow:hidden;
   transition:max-height .3s ease,opacity .25s ease,padding .3s ease;
   padding:0 20px;
 }
-.wallet-card.expanded .wc-body{max-height:420px;opacity:1;padding:0 20px 18px}
-.wc-track .cap{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:6px}
-.wc-track .cap b{color:var(--text);font-weight:500}
-.wc-track .rail{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
-.wc-track .rail i{display:block;height:100%;border-radius:99px;background:var(--tint)}
+.wallet-card.expanded .wc-body{max-height:440px;opacity:1;padding:0 20px 18px}
+.wc-track .cap{display:flex;justify-content:space-between;font-size:11.5px;color:rgba(236,232,224,.6);margin-bottom:6px}
+.wc-track .cap b{color:#ece8e0;font-weight:500;font-family:ui-monospace,"SF Mono","Menlo",monospace;letter-spacing:.05em}
+.wc-track .rail{height:6px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden}
+.wc-track .rail i{display:block;height:100%;border-radius:99px;background:var(--gold-foil)}
 .wallet-card.expanded .wc-track .rail i{animation:progress-grow .55s .08s cubic-bezier(.2,.8,.2,1) both;transform-origin:left}
-.wc-note{font-size:11px;color:var(--faint);margin-top:7px}
-.wc-facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:var(--muted);margin-top:12px}
-.wc-facts b{color:var(--text)}
+.wc-note{font-size:11px;color:rgba(236,232,224,.42);margin-top:7px}
+.wc-facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:rgba(236,232,224,.6);margin-top:12px}
+.wc-facts b{color:#ece8e0;font-family:ui-monospace,"SF Mono","Menlo",monospace;letter-spacing:.04em}
 .wc-certs{display:flex;flex-direction:column;gap:5px;margin-top:12px}
-.wc-cert{font-size:12px;color:var(--text)}
-.wc-cert em{color:var(--faint);font-style:normal;font-size:11px}
+.wc-cert{font-size:12px;color:rgba(236,232,224,.85)}
+.wc-cert em{color:rgba(236,232,224,.42);font-style:normal;font-size:11px}
 .wc-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.wc-actions button{font-size:12px;color:var(--muted);padding:6px 12px;border-radius:7px;background:var(--surface-2);display:inline-flex;align-items:center;gap:5px}
-.wc-actions button:hover{color:var(--brass)}
-.wc-actions button.del:hover{color:var(--danger)}
+.wc-actions button{font-size:12px;color:rgba(236,232,224,.65);padding:6px 12px;border-radius:7px;background:rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:5px}
+.wc-actions button:hover{color:var(--gold)}
+.wc-actions button.del:hover{color:#e0655f}
 
 /* ============ 到期提醒 ============ */
 .expiry-list{display:flex;flex-direction:column;gap:8px}
@@ -305,12 +363,13 @@
 @media (max-width:1080px){.charts-2col{grid-template-columns:1fr}}
 
 /* ============ Wrapped 年度总结 ============ */
+/* 用 dvh：iOS 地址栏收放时 100vh 会算错，导致全屏卡片被裁、scroll-snap 错位 */
 .wrapped{
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;
-  scroll-snap-type:y mandatory;overflow-y:auto;height:100vh;flex:1;
+  min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+  scroll-snap-type:y mandatory;overflow-y:auto;height:100dvh;flex:1;
 }
 .wrapped-card{
-  min-height:100vh;width:100%;display:flex;flex-direction:column;
+  min-height:100dvh;width:100%;display:flex;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;
   scroll-snap-align:start;padding:40px;gap:14px;
 }
@@ -358,19 +417,25 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
 /* ============ 登录 / 注册 ============ */
 .login-screen{
   flex:1;min-height:100vh;display:flex;align-items:center;justify-content:center;
-  padding:40px;background:var(--ink);
+  padding:40px;
+  /* 取卡台：中心一束极淡暖光打在封套上 */
+  background:radial-gradient(120% 80% at 50% 0%, color-mix(in srgb,var(--gold) 6%,var(--ink)) 0%, var(--ink) 60%);
 }
-.login-card{width:100%;max-width:400px;padding:36px 34px}
+/* 登录卡 = 一张烫金房卡：顶端一条金箔线，压印厚度 */
+.login-card{width:100%;max-width:400px;padding:38px 34px;position:relative;overflow:hidden}
+.login-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold-foil)}
 .login-card{animation:login-enter .55s cubic-bezier(.2,.8,.2,1) both}
 .login-brand{display:flex;align-items:baseline;gap:10px;justify-content:center;margin-bottom:22px}
-.login-brand .zh{font-size:32px;letter-spacing:.14em;color:var(--brass)}
+.login-brand .zh{font-size:32px;letter-spacing:.14em;font-weight:700;
+  color:var(--gold);background:var(--gold-foil);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@supports not ((-webkit-background-clip:text) or (background-clip:text)){.login-brand .zh{-webkit-text-fill-color:currentColor}}
 .login-brand .en{font-size:11px;letter-spacing:.3em;color:var(--faint)}
 .login-lead{font-size:13px;color:var(--muted);text-align:center;margin-bottom:22px;line-height:1.7}
 .login-tabs{display:flex;gap:4px;background:var(--surface-2);border-radius:9px;padding:4px;margin-bottom:22px}
 .login-tabs button{flex:1;padding:8px;border-radius:6px;font-size:13px;color:var(--muted);transition:background .15s,color .15s}
-.login-tabs button.active{background:var(--surface);color:var(--brass)}
+.login-tabs button.active{background:var(--surface);color:var(--gold)}
 .login-form{display:flex;flex-direction:column;gap:14px}
-.login-error{font-size:12.5px;color:var(--danger);padding:8px 12px;background:var(--brass-soft);border-radius:8px;background:color-mix(in srgb,var(--danger) 12%,transparent)}
+.login-error{font-size:12.5px;color:var(--danger);padding:8px 12px;border-radius:8px;background:color-mix(in srgb,var(--danger) 12%,transparent)}
 .login-note{font-size:11px;color:var(--faint);text-align:center;margin-top:20px;line-height:1.7}
 
 /* 侧栏底部用户身份 */
@@ -419,7 +484,7 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
     width:auto;height:auto;flex:none;
     flex-direction:row;padding:0;
     border-right:none;border-top:1px solid var(--line);
-    background:var(--surface-2,var(--bg));
+    background:var(--surface-2);
     z-index:50;
   }
   .sidenav .logo{display:none}

@@ -13,13 +13,6 @@ interface Props {
   onDelete: (m: Membership) => void;
 }
 
-// 集团品牌色（卡面渐变用，硬编码与 tokens.css 同步）
-const GROUP_TINT: Record<string, string> = {
-  hilton: "#3f76d4",
-  huazhu: "#d97544",
-  other: "#7a8499",
-};
-
 export default function WalletCard({ membership: m, stays, expanded, onToggle, onEdit, onDelete }: Props) {
   const meta = GROUP_META[m.group] ?? GROUP_META.other;
   const year = dayjs().year();
@@ -37,7 +30,9 @@ export default function WalletCard({ membership: m, stays, expanded, onToggle, o
 
   const name = m.group === "other" ? m.customName || "其他集团" : meta.name;
   const en = m.group === "other" ? "CUSTOM" : meta.en;
-  const tint = (m.group === "other" && m.customColor) || GROUP_TINT[m.group] || GROUP_TINT.other;
+  // 卡面主色：用 CSS 变量（随深/浅色主题实时变），other 用自定义色或回退到 --other
+  const tint =
+    m.group === "other" && m.customColor ? m.customColor : `var(${meta.cssVar})`;
   const tierLabel = tp.currentEn ? `${tp.currentName} ${tp.currentEn}` : tp.currentName;
 
   return (
@@ -56,6 +51,9 @@ export default function WalletCard({ membership: m, stays, expanded, onToggle, o
         </span>
         <span className="wc-tier">{tierLabel}</span>
       </button>
+
+      {/* 磁条：房卡标志物 */}
+      <div className="wc-magstripe" aria-hidden="true" />
 
       {/* 收起态摘要行（一眼看积分/本年晚数） */}
       <div className="wc-summary">

@@ -109,27 +109,28 @@ export interface HotelAgg {
 }
 
 export function aggregateHotels(stays: Stay[]): HotelAgg[] {
-  const map = new Map<string, HotelAgg>();
+  // 按 酒店名+城市 聚合：连锁品牌（全季/汉庭…）在不同城市同名，不能合并成一个地图点。
+  const map = new Map<string, HotelAgg & { _ratingSum: number; _ratingCount: number }>();
   for (const s of stays) {
+    const key = `${s.hotelName}|${s.city}`;
     const cur =
-      map.get(s.hotelName) ||
+      map.get(key) ||
       { hotelName: s.hotelName, hotelNameEn: s.hotelNameEn, group: s.group, city: s.city,
-        nights: 0, visits: 0, avgRating: null, stayIds: [] as string[] };
+        nights: 0, visits: 0, avgRating: null, stayIds: [] as string[], _ratingSum: 0, _ratingCount: 0 };
     cur.nights += nightsOf(s);
     cur.visits += 1;
     cur.stayIds.push(s.id);
+    if (s.rating != null) { cur._ratingSum += s.rating; cur._ratingCount += 1; }
     if (cur.lat == null && s.lat != null) { cur.lat = s.lat; cur.lng = s.lng; }
-    map.set(s.hotelName, cur);
+    map.set(key, cur);
   }
+  const out: HotelAgg[] = [];
   for (const h of map.values()) {
-    const rated = h.stayIds
-      .map((id) => stays.find((s) => s.id === id))
-      .filter((s): s is Stay => !!s && s.rating != null);
-    h.avgRating = rated.length
-      ? Math.round((rated.reduce((n, s) => n + (s.rating || 0), 0) / rated.length) * 10) / 10
-      : null;
+    const { _ratingSum, _ratingCount, ...agg } = h;
+    agg.avgRating = _ratingCount > 0 ? Math.round((_ratingSum / _ratingCount) * 10) / 10 : null;
+    out.push(agg);
   }
-  return [...map.values()].sort((a, b) => b.nights - a.nights);
+  return out.sort((a, b) => b.nights - a.nights);
 }
 
 /** 大圆距离 km */

@@ -39,7 +39,7 @@ export default function StayCard({ stay, onEdit, onDelete }: Props) {
           <span>{stay.city} · {stay.country}</span>
           {stay.roomType && <span>{stay.roomType}</span>}
           {stay.rating != null && <span>★ {stay.rating}</span>}
-          {stay.tags?.map((t) => <span key={t}>#{t}</span>)}
+          {stay.tags?.map((t, i) => <span key={i}>#{t}</span>)}
         </div>
       </div>
       <div className="right">
