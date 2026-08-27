@@ -441,6 +441,33 @@ button.filter-chip:focus-visible{outline:2px solid var(--brass);outline-offset:2
 .city-row.active{background:var(--surface);color:var(--brass);box-shadow:inset 3px 0 0 var(--brass)}
 .city-row .n{margin-left:auto;font-size:12px;color:var(--faint)}
 .city-row.active .n{color:var(--brass)}
+/* 侧边栏头部：标题 + 排序切换 */
+.map-side-head{display:flex;align-items:center;justify-content:space-between;padding:0 6px;margin-bottom:10px}
+.map-side-head h2{margin:0;padding:0}
+.map-sort{display:flex;gap:4px}
+.map-sort button{
+  font-size:11px;padding:3px 8px;border-radius:6px;color:var(--faint);
+  border:1px solid transparent;transition:color .15s,border-color .15s,background .15s;
+}
+.map-sort button:hover{color:var(--muted)}
+.map-sort button.on{color:var(--brass);border-color:var(--line);background:var(--surface)}
+.map-city-search{
+  width:100%;margin-bottom:10px;padding:7px 12px;border-radius:8px;font-size:12.5px;
+  color:var(--text);background:var(--surface);border:1px solid var(--line);
+  transition:border-color .15s;
+}
+.map-city-search:focus{outline:none;border-color:var(--brass)}
+.map-city-search::placeholder{color:var(--faint)}
+.map-unlocated-tip{
+  font-size:11px;color:var(--faint);line-height:1.5;padding:0 6px 8px;
+  border-bottom:1px solid var(--line);margin-bottom:8px;
+}
+.map-city-empty{padding:16px 6px;font-size:12.5px;color:var(--faint);text-align:center}
+.city-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.city-row:disabled .city-dot{filter:grayscale(1);opacity:.6}
+.c-visits{margin-left:auto;font-size:11px;color:var(--faint)}
+.city-row.active .c-visits{color:var(--brass)}
+.city-row .n{font-size:12px;color:var(--faint);min-width:42px;text-align:right}
 .map-main{flex:1;position:relative;min-width:0}
 .map-main .maplibregl-map{position:absolute;inset:0}
 
@@ -464,6 +491,24 @@ button.filter-chip:focus-visible{outline:2px solid var(--brass);outline-offset:2
   box-shadow:var(--shadow);transition:border-color .15s;
 }
 .map-reset-btn:hover{border-color:var(--brass)}
+
+/* 集团配色图例（地图右下角浮层） */
+.map-legend{position:absolute;right:10px;bottom:52px;z-index:6}
+.map-legend-toggle{
+  padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;
+  background:var(--surface);color:var(--muted);border:1px solid var(--line);
+  box-shadow:var(--shadow);transition:color .15s,border-color .15s;
+}
+.map-legend-toggle:hover{color:var(--brass);border-color:var(--brass)}
+.map-legend-body{
+  position:absolute;right:0;bottom:calc(100% + 8px);min-width:132px;
+  display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(6px);
+}
+.map-legend-body span{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.map-legend-body i{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.map-legend-note{color:var(--faint)!important;font-size:11px!important;border-top:1px solid var(--line);padding-top:8px}
 
 /* 自动补全定位进度提示（地图顶部居中） */
 .map-geocoding{

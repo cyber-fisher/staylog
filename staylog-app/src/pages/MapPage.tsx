@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStaylog } from "../store/staylog";
-import { aggregateCities, aggregateHotels, distanceKm, type HotelAgg } from "../lib/stats";
+import { aggregateCities, aggregateHotels, distanceKm, totalTravelKm, type HotelAgg } from "../lib/stats";
 import { wgs84ToGcj02 } from "../lib/amap";
 import { geocodeCity } from "../lib/geocode";
 import { GROUP_META, type LoyaltyGroup } from "../types";
@@ -73,6 +73,10 @@ export default function MapPage() {
   const [activeCity, setActiveCity] = useState<string | null>(null);
   // 存量数据自动补全定位的进度提示（{done,total}），完成后清空
   const [geocoding, setGeocoding] = useState<{ done: number; total: number } | null>(null);
+  // 侧边栏：城市搜索关键字 + 排序方式（晚数 / 名称）+ 图例展开
+  const [cityQuery, setCityQuery] = useState("");
+  const [citySort, setCitySort] = useState<"nights" | "name">("nights");
+  const [legendOpen, setLegendOpen] = useState(false);
   const backfillRan = useRef(false);
   // 是否已把视野框到酒店点（避免数据多次到达时反复抢镜）
   const didFit = useRef(false);
@@ -87,6 +91,21 @@ export default function MapPage() {
     }
     return best;
   }, [located, homeBase]);
+
+  // 侧边栏城市列表：先按关键字过滤，再按当前排序方式排序（晚数降序 / 名称升序）
+  const shownCities = useMemo(() => {
+    const q = cityQuery.trim().toLowerCase();
+    const filtered = q ? cities.filter((c) => c.city.toLowerCase().includes(q)) : cities;
+    const sorted = [...filtered];
+    if (citySort === "name") sorted.sort((a, b) => a.city.localeCompare(b.city, "zh"));
+    else sorted.sort((a, b) => b.nights - a.nights);
+    return sorted;
+  }, [cities, cityQuery, citySort]);
+
+  // 未定位城市数量（提示用户去补全城市名以自动定位）
+  const unlocatedCount = useMemo(() => cities.filter((c) => c.lat == null).length, [cities]);
+  // 累计旅行里程（以最常入住城市为基点的单程大圆距离之和）
+  const travelKm = useMemo(() => totalTravelKm(cities), [cities]);
 
   // WGS-84 → 高德显示坐标（境外恒等，境内对齐高德底图）
   function project(lng: number, lat: number): [number, number] {
@@ -249,23 +268,54 @@ export default function MapPage() {
     <div className="page-full">
       <div className="map-layout">
         <aside className="map-side">
-          <h2 className="serif">城市足迹</h2>
-          {cities.map((c) => (
-            <button key={c.city} className={"city-row" + (activeCity === c.city ? " active" : "")}
-              disabled={c.lat == null}
-              aria-current={activeCity === c.city ? "true" : undefined}
-              onClick={() => c.lat != null && flyToCity(c.city, c.lat, c.lng!)}
-              title={c.lat == null ? "此城市未定位（编辑住宿记录补全城市名可自动定位）" : `定位到${c.city}`}>
-              <span>{c.city}</span>
-              <span className="n mono">{c.nights} 晚</span>
-            </button>
-          ))}
+          <div className="map-side-head">
+            <h2 className="serif">城市足迹</h2>
+            <div className="map-sort">
+              <button type="button" className={citySort === "nights" ? "on" : ""}
+                onClick={() => setCitySort("nights")}>按晚数</button>
+              <button type="button" className={citySort === "name" ? "on" : ""}
+                onClick={() => setCitySort("name")}>按名称</button>
+            </div>
+          </div>
+          <input className="map-city-search" type="search" value={cityQuery}
+            onChange={(e) => setCityQuery(e.target.value)} placeholder="搜索城市…" aria-label="搜索城市" />
+          {unlocatedCount > 0 && (
+            <div className="map-unlocated-tip">{unlocatedCount} 座城市未定位，补全城市名可自动上图</div>
+          )}
+          <div className="city-list">
+            {shownCities.map((c) => (
+              <button key={c.city} className={"city-row" + (activeCity === c.city ? " active" : "")}
+                disabled={c.lat == null}
+                aria-current={activeCity === c.city ? "true" : undefined}
+                onClick={() => c.lat != null && flyToCity(c.city, c.lat, c.lng!)}
+                title={c.lat == null ? "此城市未定位（编辑住宿记录补全城市名可自动定位）" : `定位到${c.city}`}>
+                <i className="city-dot" style={{ background: GROUP_HEX[c.topGroup as LoyaltyGroup] ?? BRASS }} />
+                <span>{c.city}</span>
+                <span className="c-visits">{c.stays} 次</span>
+                <span className="n mono">{c.nights} 晚</span>
+              </button>
+            ))}
+            {shownCities.length === 0 && <div className="map-city-empty">未找到匹配的城市</div>}
+          </div>
         </aside>
         <div className="map-main">
           <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
           <button className="map-reset-btn" onClick={resetView} title="重置到全部酒店视图">
             重置视图
           </button>
+          <div className="map-legend">
+            <button type="button" className="map-legend-toggle" onClick={() => setLegendOpen((v) => !v)}>
+              图例
+            </button>
+            {legendOpen && (
+              <div className="map-legend-body">
+                {(["hilton", "huazhu", "other"] as LoyaltyGroup[]).map((g) => (
+                  <span key={g}><i style={{ background: GROUP_HEX[g] }} />{GROUP_META[g].short}</span>
+                ))}
+                <span className="map-legend-note">图钉右上角数字＝入住次数</span>
+              </div>
+            )}
+          </div>
           {geocoding && (
             <div className="map-geocoding" role="status">
               正在定位 <b className="mono">{geocoding.done}/{geocoding.total}</b> 家酒店…
@@ -275,6 +325,7 @@ export default function MapPage() {
             <span>累计足迹 <b className="mono">{cities.length}</b> 城 · <b className="mono">{new Set(stays.map((s) => s.country)).size}</b> 国</span>
             {homeBase && <span>最常入住 <b>{homeBase.city}</b>（{homeBase.nights}晚）</span>}
             {farthest && <span>最远足迹 <b>{farthest.city}</b> · <b className="mono">{farthest.km.toLocaleString()}</b> km</span>}
+            {travelKm > 0 && <span>累计里程 <b className="mono">{travelKm.toLocaleString()}</b> km</span>}
           </div>
         </div>
       </div>

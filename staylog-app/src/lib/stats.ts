@@ -101,18 +101,45 @@ export interface CityAgg {
   stays: number;
   lat?: number;
   lng?: number;
+  /** 该城市住得最多的集团（用于侧边栏色点标识） */
+  topGroup?: LoyaltyGroup;
 }
 
 export function aggregateCities(stays: Stay[]): CityAgg[] {
-  const map = new Map<string, CityAgg>();
+  const map = new Map<string, CityAgg & { _byGroup: Record<string, number> }>();
   for (const s of stayedOnly(stays)) {
-    const cur = map.get(s.city) || { city: s.city, country: s.country, nights: 0, stays: 0 };
+    const cur =
+      map.get(s.city) ||
+      { city: s.city, country: s.country, nights: 0, stays: 0, _byGroup: {} as Record<string, number> };
     cur.nights += nightsOf(s);
     cur.stays += 1;
+    cur._byGroup[s.group] = (cur._byGroup[s.group] || 0) + nightsOf(s);
     if (cur.lat == null && s.lat != null) { cur.lat = s.lat; cur.lng = s.lng; }
     map.set(s.city, cur);
   }
-  return [...map.values()].sort((a, b) => b.nights - a.nights);
+  const out: CityAgg[] = [];
+  for (const c of map.values()) {
+    const { _byGroup, ...agg } = c;
+    const top = Object.entries(_byGroup).sort((a, b) => b[1] - a[1])[0];
+    agg.topGroup = top ? (top[0] as LoyaltyGroup) : undefined;
+    out.push(agg);
+  }
+  return out.sort((a, b) => b.nights - a.nights);
+}
+
+/**
+ * 从常住城市（第一名）到其余各城市的总往返里程估算，用于地图统计条。
+ * 以最常入住城市为出发点，累加到每个其他已定位城市的单程大圆距离。
+ */
+export function totalTravelKm(cities: CityAgg[]): number {
+  const located = cities.filter((c) => c.lat != null);
+  if (located.length < 2) return 0;
+  const home = located[0];
+  let sum = 0;
+  for (const c of located.slice(1)) {
+    sum += distanceKm(home.lat!, home.lng!, c.lat!, c.lng!);
+  }
+  return sum;
 }
 
 export interface HotelAgg {
