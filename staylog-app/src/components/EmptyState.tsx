@@ -1,11 +1,13 @@
 import { useStaylog } from "../store/staylog";
-import { IconBed, IconPlus, IconSparkle } from "./Icons";
+import { IconBed, IconClipboard, IconPlus, IconSparkle } from "./Icons";
 
 interface Props {
   onAdd?: () => void;
+  /** 提供时显示「粘贴订单文本导入」入口 */
+  onImport?: () => void;
 }
 
-export default function EmptyState({ onAdd }: Props) {
+export default function EmptyState({ onAdd, onImport }: Props) {
   const loadDemo = useStaylog((s) => s.loadDemo);
   return (
     <div className="card empty">
@@ -16,6 +18,11 @@ export default function EmptyState({ onAdd }: Props) {
         {onAdd && (
           <button className="btn btn-primary" onClick={onAdd}>
             <IconPlus width={14} height={14} /> 新增住宿记录
+          </button>
+        )}
+        {onImport && (
+          <button className="btn" onClick={onImport}>
+            <IconClipboard width={14} height={14} /> 粘贴订单文本导入
           </button>
         )}
         <button className="btn" onClick={loadDemo}>

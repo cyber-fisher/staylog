@@ -6,6 +6,7 @@ import Programs from "./pages/Programs";
 import Settings from "./pages/Settings";
 import LoginGate from "./pages/LoginGate";
 import ConfirmDialog from "./components/ConfirmDialog";
+import ToastHost from "./components/Toast";
 import { useAuth, useCurrentUser } from "./store/auth";
 import { useStaylog } from "./store/staylog";
 import {
@@ -122,6 +123,7 @@ export default function App() {
     return (
       <div className="shell">
         <LoginGate />
+        <ToastHost />
       </div>
     );
   }
@@ -193,6 +195,7 @@ export default function App() {
         onConfirm={confirmMigrate}
         onCancel={dismissMigrate}
       />
+      <ToastHost />
     </div>
   );
 }

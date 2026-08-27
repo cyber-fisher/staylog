@@ -39,6 +39,8 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
   const [poiOpen, setPoiOpen] = useState(false);
   const [poiStatus, setPoiStatus] = useState<"idle" | "loading" | "error">("idle");
   const [poiError, setPoiError] = useState("");
+  // 键盘导航高亮项（-1 = 未选中）
+  const [poiActive, setPoiActive] = useState(-1);
   const [brandHint, setBrandHint] = useState<string>("");
   const poiTimer = useRef<number | undefined>(undefined);
   const poiAbort = useRef<AbortController | null>(null);
@@ -55,12 +57,34 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
       setGeoStatus(initial?.lat != null ? "ok" : "idle");
       setPois([]);
       setPoiOpen(false);
+      setPoiActive(-1);
       setPoiStatus("idle");
       setBrandHint("");
       // 编辑已有记录且带坐标时视为已定位；新记录重置
       poiLocated.current = initial?.lat != null;
     }
   }, [open, initial]);
+
+  // Esc：候选列表展开时先收列表，否则关闭整个表单
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (poiOpen) {
+        setPoiOpen(false);
+      } else {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, poiOpen, onClose]);
+
+  // 高亮项变化时滚入可视区（候选列表有最大高度+滚动）
+  useEffect(() => {
+    if (poiActive < 0) return;
+    document.getElementById(`poi-opt-${poiActive}`)?.scrollIntoView({ block: "nearest" });
+  }, [poiActive]);
 
   function set<K extends keyof Stay>(key: K, value: Stay[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -94,6 +118,7 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
         const results = await searchPoi(name, AMAP_KEY, ctrl.signal);
         setPois(results);
         setPoiOpen(results.length > 0);
+        setPoiActive(-1);
         setPoiStatus("idle");
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return;
@@ -110,6 +135,21 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
     applyBrandMatch(name);
     if (suppressSearch.current) { suppressSearch.current = false; return; }
     searchHotels(name);
+  }
+
+  // 候选列表键盘导航：↓/↑ 移动高亮，Enter 选中，Esc 由全局监听收列表
+  function onHotelKeyDown(e: React.KeyboardEvent) {
+    if (!poiOpen || pois.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setPoiActive((i) => (i + 1) % pois.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setPoiActive((i) => (i <= 0 ? pois.length - 1 : i - 1));
+    } else if (e.key === "Enter" && poiActive >= 0 && pois[poiActive]) {
+      e.preventDefault();
+      pickPoi(pois[poiActive]);
+    }
   }
 
   // 选中一条高德候选：回填名称、城市、国家、坐标，并跑品牌识别
@@ -131,6 +171,7 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
     applyBrandMatch(p.name);
     setGeoStatus("ok");
     setPoiOpen(false);
+    setPoiActive(-1);
     setPois([]);
   }
 
@@ -179,17 +220,22 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
               {AMAP_KEY && <span style={{ color: "var(--faint)", fontWeight: 400, marginLeft: 8 }}>输入即搜索</span>}
             </label>
             <input id="hotelName" required autoComplete="off" value={form.hotelName}
+              role="combobox" aria-expanded={poiOpen && pois.length > 0} aria-controls="poi-listbox"
+              aria-activedescendant={poiActive >= 0 ? `poi-opt-${poiActive}` : undefined}
               onChange={(e) => onHotelNameChange(e.target.value)}
+              onKeyDown={onHotelKeyDown}
               onFocus={() => pois.length && setPoiOpen(true)}
               placeholder="例如：上海全季酒店 / 东京康莱德" />
             {poiStatus === "loading" && <div className="geo-status">搜索酒店中…</div>}
             {poiStatus === "error" && <div className="geo-status fail">{poiError}</div>}
             {brandHint && <div className="geo-status ok">{brandHint}</div>}
             {poiOpen && pois.length > 0 && (
-              <ul className="poi-list" role="listbox">
+              <ul className="poi-list" role="listbox" id="poi-listbox" aria-label="酒店候选">
                 {pois.map((p, i) => (
-                  <li key={i}>
-                    <button type="button" className="poi-item" onClick={() => pickPoi(p)}>
+                  <li key={i} id={`poi-opt-${i}`} role="option" aria-selected={i === poiActive}>
+                    <button type="button" className={`poi-item${i === poiActive ? " active" : ""}`}
+                      onMouseEnter={() => setPoiActive(i)}
+                      onClick={() => pickPoi(p)}>
                       <span className="poi-icon"><IconSearch width={13} height={13} /></span>
                       <span className="poi-text">
                         <b>{p.name}</b>
@@ -309,9 +355,31 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
             </div>
           </div>
           <div className="field">
-            <label htmlFor="rating">评分（选填，1-5）</label>
-            <input id="rating" type="number" min={1} max={5} step={0.5} value={form.rating ?? ""}
-              onChange={(e) => set("rating", e.target.value ? Number(e.target.value) : undefined)} />
+            <label id="rating-label">评分（选填，点击星星，再点一次取消）</label>
+            <div className="rating-picker" role="radiogroup" aria-labelledby="rating-label">
+              {[1, 2, 3, 4, 5].map((n) => {
+                const cur = form.rating ?? 0;
+                const filled = cur >= n;
+                const half = !filled && cur >= n - 0.5; // 历史数据可能有 4.5 这类半星，展示为半星态
+                return (
+                  <button key={n} type="button" role="radio"
+                    aria-checked={form.rating === n}
+                    aria-label={`${n} 星`}
+                    className={`star${filled ? " on" : ""}${half ? " half" : ""}`}
+                    onClick={() => set("rating", form.rating === n ? undefined : n)}>
+                    {filled ? "★" : half ? "★" : "☆"}
+                  </button>
+                );
+              })}
+              {form.rating != null && (
+                <span className="rating-val mono">{form.rating}</span>
+              )}
+              {form.rating != null && (
+                <button type="button" className="rating-clear" onClick={() => set("rating", undefined)}>
+                  清除
+                </button>
+              )}
+            </div>
           </div>
           <div className="field">
             <label htmlFor="tags">标签（选填，逗号分隔）</label>

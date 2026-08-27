@@ -47,6 +47,7 @@ export default function StayCard({ stay, onEdit, onDelete, onRepeat }: Props) {
           {stay.rating != null && <span>★ {stay.rating}</span>}
           {stay.tags?.map((t, i) => <span key={i}>#{t}</span>)}
         </div>
+        {stay.notes ? <p className="stay-notes">{stay.notes}</p> : null}
       </div>
       <div className="right">
         <div className="nights mono">{nights}<small> 晚</small></div>

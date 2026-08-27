@@ -8,10 +8,30 @@ import StayCard from "../components/StayCard";
 import StayForm from "../components/StayForm";
 import ImportPasteDialog from "../components/ImportPasteDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { toast } from "../components/Toast";
 import EmptyState from "../components/EmptyState";
 import type { LoyaltyGroup, Stay } from "../types";
 import { GROUP_META } from "../types";
 import { IconClipboard, IconPlus } from "../components/Icons";
+
+const LS_KEY = "staylog.staysFilters.v1";
+
+interface StaysFilters {
+  q: string;
+  group: "" | LoyaltyGroup;
+  year: string;
+}
+
+function loadFilters(): StaysFilters | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw) as Partial<StaysFilters>;
+    return { q: String(o.q ?? ""), group: (o.group ?? "") as "" | LoyaltyGroup, year: String(o.year ?? "") };
+  } catch {
+    return null;
+  }
+}
 
 export default function Stays() {
   const stays = useStaylog((s) => s.stays);
@@ -27,15 +47,26 @@ export default function Stays() {
   const [formInitial, setFormInitial] = useState<Stay | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [deleting, setDeleting] = useState<Stay | null>(null);
-  const [q, setQ] = useState(() => searchParams.get("q") ?? "");
-  const [groupFilter, setGroupFilter] = useState<"" | LoyaltyGroup>("");
-  const [yearFilter, setYearFilter] = useState("");
+  const [q, setQ] = useState(() => searchParams.get("q") ?? loadFilters()?.q ?? "");
+  const [groupFilter, setGroupFilter] = useState<"" | LoyaltyGroup>(() => loadFilters()?.group ?? "");
+  // URL 参数 ?filter=upcoming 优先于本地快照（如首页倒计时卡跳转）
+  const [yearFilter, setYearFilter] = useState(() =>
+    searchParams.get("filter") === "upcoming" ? "upcoming" : loadFilters()?.year ?? ""
+  );
 
   // 从地图"查看入住记录"跳转带 ?q= 时预填搜索框（已挂载页 SPA 跳转也生效）
   useEffect(() => {
     const qp = searchParams.get("q");
     if (qp) setQ(qp);
+    if (searchParams.get("filter") === "upcoming") setYearFilter("upcoming");
   }, [searchParams]);
+
+  // 筛选持久化：同会话内跨页面来回不丢筛选状态
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ q, group: groupFilter, year: yearFilter }));
+    } catch { /* 隐私模式写不进去就静默 */ }
+  }, [q, groupFilter, yearFilter]);
 
 
   const years = useMemo(() => yearsWithData(stays), [stays]);
@@ -66,6 +97,27 @@ export default function Stays() {
     return [...map.entries()].sort((a, b) => b[0] - a[0]);
   }, [filtered]);
 
+  /** 年份 chip 选项：即将入住置顶 + 有数据的年份倒序 */
+  const yearChips = useMemo(() => {
+    const list: { value: string; label: string }[] = [];
+    if (upcomingCount > 0) list.push({ value: "upcoming", label: `即将入住（${upcomingCount}）` });
+    for (const y of years) list.push({ value: String(y), label: String(y) });
+    return list;
+  }, [years, upcomingCount]);
+
+  /** 集团 chip 选项：只列出实际出现过的集团 */
+  const groupChips = useMemo(() => {
+    const present = new Set(stays.map((s) => s.group));
+    return Object.entries(GROUP_META).filter(([k]) => present.has(k as LoyaltyGroup));
+  }, [stays]);
+
+  function toggleYear(v: string) {
+    setYearFilter((cur) => (cur === v ? "" : v));
+  }
+  function toggleGroup(v: "" | LoyaltyGroup) {
+    setGroupFilter((cur) => (cur === v ? "" : v));
+  }
+
   function openNew() {
     setFormMode("new");
     setFormInitial(null);
@@ -95,6 +147,7 @@ export default function Stays() {
     else addStay(stay);
     setFormOpen(false);
     setFormInitial(null);
+    toast(formMode === "edit" ? "已保存修改" : "已新增记录");
   }
   function closeForm() {
     setFormOpen(false);
@@ -125,20 +178,31 @@ export default function Stays() {
           <div className="filter-bar">
             <input type="search" placeholder="搜索酒店 / 城市 / 备注…" value={q}
               onChange={(e) => setQ(e.target.value)} aria-label="搜索住宿记录" />
-            <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value as "" | LoyaltyGroup)} aria-label="按集团筛选">
-              <option value="">全部集团</option>
-              {Object.entries(GROUP_META).map(([k, m]) => (
-                <option key={k} value={k}>{m.name}</option>
-              ))}
-            </select>
-            <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} aria-label="按年份筛选">
-              <option value="">全部年份</option>
-              {upcomingCount > 0 && <option value="upcoming">即将入住（{upcomingCount}）</option>}
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
             {(q || groupFilter || yearFilter) && (
-              <span style={{ fontSize: 12, color: "var(--faint)" }}>筛选出 {filtered.length} 条</span>
+              <button className="btn btn-ghost btn-xs" onClick={() => { setQ(""); setGroupFilter(""); setYearFilter(""); }}>
+                清除筛选（{filtered.length} 条）
+              </button>
             )}
+          </div>
+          <div className="chip-row" role="group" aria-label="按年份筛选">
+            {yearChips.map((c) => (
+              <button key={c.value} type="button"
+                className={`chip filter-chip${yearFilter === c.value ? " on" : ""}`}
+                aria-pressed={yearFilter === c.value}
+                onClick={() => toggleYear(c.value)}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+          <div className="chip-row" role="group" aria-label="按集团筛选">
+            {groupChips.map(([k, m]) => (
+              <button key={k} type="button"
+                className={`chip filter-chip ${m.className}${groupFilter === k ? " on" : ""}`}
+                aria-pressed={groupFilter === k}
+                onClick={() => toggleGroup(k as LoyaltyGroup)}>
+                {m.name}
+              </button>
+            ))}
           </div>
 
           {byYear.map(([year, list]) => (
@@ -168,7 +232,7 @@ export default function Stays() {
         body={deleting ? `${deleting.hotelName} · ${deleting.checkIn}，删除后无法恢复。` : ""}
         confirmLabel="删除"
         danger
-        onConfirm={() => { if (deleting) removeStay(deleting.id); setDeleting(null); }}
+        onConfirm={() => { if (deleting) { removeStay(deleting.id); toast("已删除记录"); } setDeleting(null); }}
         onCancel={() => setDeleting(null)}
       />
     </main>

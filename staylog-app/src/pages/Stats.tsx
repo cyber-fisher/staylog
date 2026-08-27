@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { useStaylog } from "../store/staylog";
-import { aggregateCities, nightsByGroup, summarizeYear, yearsWithData } from "../lib/stats";
+import { aggregateCities, nightsByGroup, nightsOf, stayedOnly, summarizeYear, yearsWithData } from "../lib/stats";
 import EmptyState from "../components/EmptyState";
 import { GROUP_META, type LoyaltyGroup } from "../types";
 import { IconSparkle } from "../components/Icons";
@@ -45,17 +45,17 @@ export default function Stats() {
 
   const ratingDist = useMemo(() => {
     const bins = [0, 0, 0, 0, 0]; // 1..5（向下取整）
-    for (const s of stays) {
+    for (const s of stayedOnly(stays)) {
       if (s.rating != null) bins[Math.min(4, Math.max(0, Math.floor(s.rating) - 1))] += 1;
     }
     return bins.map((n, i) => ({ star: `${i + 1}★`, count: n }));
   }, [stays]);
 
   const pointsEfficiency = useMemo(() => {
-    const rated = stays.filter((s) => s.rate && s.currency === "CNY" && s.pointsEarned);
+    const rated = stayedOnly(stays).filter((s) => s.rate && s.currency === "CNY" && s.pointsEarned);
     if (!rated.length) return null;
     const pts = rated.reduce((n, s) => n + (s.pointsEarned || 0), 0);
-    const spend = rated.reduce((n, s) => n + (s.rate || 0), 0);
+    const spend = rated.reduce((n, s) => n + (s.rate || 0) * nightsOf(s), 0);
     return Math.round((pts / spend) * 10) / 10;
   }, [stays]);
 

@@ -100,6 +100,7 @@
 .stay-card .hotel{font-size:15.5px;font-weight:600;margin-bottom:3px}
 .stay-card .hotel .en{color:var(--faint);font-weight:400;font-size:12px;margin-left:6px}
 .stay-card .meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);align-items:center}
+.stay-card .stay-notes{margin:6px 0 0;font-size:12.5px;line-height:1.6;color:var(--muted);white-space:pre-wrap;word-break:break-word}
 .stay-card .right{text-align:right}
 .stay-card .nights{font-size:17px}
 .stay-card .nights small{font-size:11px;color:var(--faint)}
@@ -115,6 +116,22 @@
 .stay-card.upcoming:hover{border-style:dashed}
 .stay-card .upcoming-chip{--bc:var(--brass);letter-spacing:.06em}
 
+/* 筛选 chip 行 */
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+button.filter-chip{cursor:pointer;transition:border-color .15s,color .15s,background .15s;user-select:none}
+button.filter-chip:hover{border-color:var(--brass);color:var(--ink)}
+button.filter-chip.on{background:var(--brass);border-color:var(--brass);color:#1a1610;font-weight:600}
+button.filter-chip:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.btn-ghost{background:transparent;border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--brass);color:var(--ink)}
+.btn-xs{font-size:12px;padding:4px 10px}
+
+/* 全局轻提示 */
+.toast-host{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:1200;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--surface-2);border:1px solid var(--brass);color:var(--text);font-size:13px;padding:9px 18px;border-radius:99px;box-shadow:var(--shadow);animation:toast-in .22s ease}
+.toast.err{border-color:var(--danger);color:var(--danger)}
+@keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
 /* ============ 即将入住倒计时（首页）============
    Flighty 式的「下一趟」。金色只用在描边与天数上，卡面保持石墨底。 */
 .upcoming{
@@ -122,6 +139,8 @@
   border-color:color-mix(in srgb,var(--brass) 40%,var(--line));
   animation:card-enter .46s cubic-bezier(.2,.8,.2,1) both;
 }
+.upcoming-link{display:block;text-decoration:none;color:inherit;cursor:pointer}
+.upcoming-link:hover{border-color:var(--brass);filter:brightness(1.02)}
 .upcoming-main{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:18px 22px}
 .uc-count{display:flex;flex-direction:column;gap:4px;min-width:104px}
 /* .eyebrow 在 .wrapped-card 里另有一套（更大字距），此处限定在倒计时卡内 */
@@ -369,6 +388,16 @@
 .geo-status.ok{color:var(--good)}
 .geo-status.fail{color:var(--warn)}
 
+/* 星级评分点选 */
+.rating-picker{display:flex;align-items:center;gap:2px}
+.rating-picker .star{font-size:22px;line-height:1;padding:2px 3px;color:var(--faint);transition:color .12s,transform .12s}
+.rating-picker .star:hover{color:var(--brass);transform:scale(1.12)}
+.rating-picker .star.on{color:var(--brass)}
+.rating-picker .star.half{color:color-mix(in srgb,var(--brass) 55%,var(--faint))}
+.rating-picker .rating-val{font-size:12px;color:var(--muted);margin-left:6px}
+.rating-picker .rating-clear{font-size:11.5px;color:var(--muted);margin-left:8px;padding:2px 8px;border-radius:6px}
+.rating-picker .rating-clear:hover{color:var(--danger);background:var(--surface-2)}
+
 /* 高德 POI 候选下拉 */
 .poi-list{
   list-style:none;position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:4px;
@@ -380,7 +409,7 @@
   display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;
   padding:9px 10px;border-radius:7px;transition:background .12s;
 }
-.poi-item:hover{background:var(--surface-2)}
+.poi-item:hover,.poi-item.active{background:var(--surface-2)}
 .poi-icon{color:var(--brass);margin-top:2px;flex:0 0 auto}
 .poi-text{display:flex;flex-direction:column;gap:2px;min-width:0}
 .poi-text b{font-size:13.5px;font-weight:600}
@@ -686,6 +715,10 @@ dialog.paste-dialog{max-width:520px;width:calc(100vw - 32px);padding:22px 24px}
 .login-tabs button{flex:1;padding:8px;border-radius:6px;font-size:13px;color:var(--muted);transition:background .15s,color .15s}
 .login-tabs button.active{background:var(--surface);color:var(--gold)}
 .login-form{display:flex;flex-direction:column;gap:14px}
+.login-form .field label{display:flex;justify-content:space-between;align-items:baseline}
+.link-btn{font-size:11.5px;color:var(--brass);padding:0}
+.link-btn:hover{text-decoration:underline}
+.link-btn:disabled{opacity:.5;cursor:default;text-decoration:none}
 .login-error{font-size:12.5px;color:var(--danger);padding:8px 12px;border-radius:8px;background:color-mix(in srgb,var(--danger) 12%,transparent)}
 .login-note{font-size:11px;color:var(--faint);text-align:center;margin-top:20px;line-height:1.7}
 

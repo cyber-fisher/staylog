@@ -22,6 +22,8 @@ interface AuthState {
   init: () => void;
   register: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  /** 发送密码重置邮件（重置链接跳回本站原点） */
+  resetPassword: (email: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -83,6 +85,14 @@ export const useAuth = create<AuthState>()((set) => ({
 
   login: async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) return { ok: false, error: zhAuthError(error.message) };
+    return { ok: true };
+  },
+
+  resetPassword: async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    });
     if (error) return { ok: false, error: zhAuthError(error.message) };
     return { ok: true };
   },

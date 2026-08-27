@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { useStaylog } from "../store/staylog";
-import { monthlyNights, stayedOnly, summarizeYear } from "../lib/stats";
+import { monthlyNights, stayedOnly, summarizeYear, yearsWithData } from "../lib/stats";
 import { repeatDraft } from "../lib/stayDraft";
 import StayCard from "../components/StayCard";
 import StayForm from "../components/StayForm";
 import EmptyState from "../components/EmptyState";
+import ImportPasteDialog from "../components/ImportPasteDialog";
 import UpcomingTrip from "../components/UpcomingTrip";
 import type { Stay } from "../types";
 import { IconPlus } from "../components/Icons";
@@ -17,7 +18,14 @@ export default function Dashboard() {
   const addStay = useStaylog((s) => s.addStay);
   const [formOpen, setFormOpen] = useState(false);
   const [formInitial, setFormInitial] = useState<Stay | null>(null);
-  const year = dayjs().year();
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const currentYear = dayjs().year();
+  // 年份切换：默认当前年；选项 = 有数据的年份 ∪ 当前年（即使当前年暂无数据也能切回）
+  const years = useMemo(() => {
+    const ys = yearsWithData(stays);
+    return ys.includes(currentYear) ? ys : [currentYear, ...ys];
+  }, [stays, currentYear]);
+  const [year, setYear] = useState(currentYear);
 
   const summary = useMemo(() => summarizeYear(stays, year), [stays, year]);
   const months = useMemo(() => monthlyNights(stays, year), [stays, year]);
@@ -46,8 +54,17 @@ export default function Dashboard() {
   if (stays.length === 0) {
     return (
       <main className="page">
-        <EmptyState onAdd={openNew} />
+        <EmptyState onAdd={openNew} onImport={() => setPasteOpen(true)} />
         <StayForm open={formOpen} initial={formInitial} onSave={handleSave} onClose={handleClose} />
+        <ImportPasteDialog
+          open={pasteOpen}
+          onClose={() => setPasteOpen(false)}
+          onApply={(draft) => {
+            setPasteOpen(false);
+            setFormInitial(draft);
+            setFormOpen(true);
+          }}
+        />
       </main>
     );
   }
@@ -60,8 +77,23 @@ export default function Dashboard() {
             {dayjs().format("YYYY年M月D日")}
           </div>
           <h1 className="serif">
-            今年住了 <em style={{ color: "var(--brass)", fontStyle: "normal" }}>{summary.nights}</em> 晚
+            {year === currentYear ? "今年" : `${year}年`}住了 <em style={{ color: "var(--brass)", fontStyle: "normal" }}>{summary.nights}</em> 晚
           </h1>
+          {years.length > 1 && (
+            <div className="chip-row" role="group" aria-label="年份切换" style={{ marginTop: 10 }}>
+              {years.map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  className={`filter-chip${y === year ? " on" : ""}`}
+                  aria-pressed={y === year}
+                  onClick={() => setYear(y)}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button className="btn btn-primary" onClick={openNew}>
           <IconPlus width={14} height={14} /> 新增记录

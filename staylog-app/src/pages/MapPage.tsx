@@ -263,7 +263,7 @@ export default function MapPage() {
         </aside>
         <div className="map-main">
           <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
-          <button className="map-reset-btn" onClick={resetView} title="重置到全国视图">
+          <button className="map-reset-btn" onClick={resetView} title="重置到全部酒店视图">
             重置视图
           </button>
           {geocoding && (

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "../store/auth";
+import { toast } from "../components/Toast";
 
 export default function LoginGate() {
   const register = useAuth((s) => s.register);
   const login = useAuth((s) => s.login);
+  const resetPassword = useAuth((s) => s.resetPassword);
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -19,6 +21,19 @@ export default function LoginGate() {
     setBusy(false);
     if (!res.ok) setError(res.error || "操作失败");
     // 成功后会话变化，App 会自动切到主界面
+  }
+
+  async function sendReset() {
+    if (!email.trim()) {
+      setError("请先输入邮箱，再点「忘记密码」");
+      return;
+    }
+    setError("");
+    setBusy(true);
+    const res = await resetPassword(email);
+    setBusy(false);
+    if (res.ok) toast("重置邮件已发送，请查收邮箱（含垃圾邮件）");
+    else toast(res.error || "发送失败，请稍后重试", "err");
   }
 
   return (
@@ -45,7 +60,14 @@ export default function LoginGate() {
               onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoFocus />
           </div>
           <div className="field">
-            <label htmlFor="lg-pass">密码</label>
+            <label htmlFor="lg-pass">
+              密码
+              {mode === "login" && (
+                <button type="button" className="link-btn" onClick={sendReset} disabled={busy}>
+                  忘记密码？
+                </button>
+              )}
+            </label>
             <input id="lg-pass" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"}
               value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "register" ? "至少 6 位" : "输入密码"} />
           </div>

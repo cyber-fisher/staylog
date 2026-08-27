@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { Link } from "react-router-dom";
 import type { Stay } from "../types";
 import { GROUP_META } from "../types";
 import { nightsOf, upcomingOf } from "../lib/stats";
@@ -31,7 +32,7 @@ export default function UpcomingTrip({ stays }: Props) {
   const meta = GROUP_META[next.group] ?? GROUP_META.other;
 
   return (
-    <section className="card upcoming" aria-label="即将入住">
+    <Link to="/stays?filter=upcoming" className="card upcoming upcoming-link" aria-label="查看全部即将入住">
       <div className="upcoming-main">
         <div className="uc-count">
           <span className="eyebrow">
@@ -77,6 +78,6 @@ export default function UpcomingTrip({ stays }: Props) {
           ))}
         </ul>
       )}
-    </section>
+    </Link>
   );
 }

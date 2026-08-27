@@ -59,7 +59,7 @@ export function summarizeYear(stays: Stay[], year: number): YearSummary {
   for (const s of inYear) {
     if (s.rate) {
       const cur = s.currency || "CNY";
-      spendByCurrency[cur] = (spendByCurrency[cur] || 0) + s.rate;
+      spendByCurrency[cur] = (spendByCurrency[cur] || 0) + s.rate * nightsOf(s);
       if (cur === "CNY") cnyNights += nightsOf(s);
     }
   }
