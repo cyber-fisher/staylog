@@ -13,14 +13,25 @@ interface Props {
   onDelete: (m: Membership) => void;
 }
 
-// 华住按等级复刻真实卡面配色（CSS 皮肤类见 app.css）。星/银/金为浅卡（配深色文字），
-// 铂金为深卡。其余集团/等级用默认宝石深卡（wallet-card 基础样式）。
+// 按集团+等级复刻真实卡面配色（CSS 皮肤类见 app.css）。
+// 华住：星/银/金为浅卡（配深色文字 is-light），铂金为深卡。
+// 希尔顿：会员=默认蓝深卡，银=浅银(is-light)、金=香槟金(is-light)、钻石=石墨深卡、曜钻=近黑深卡。
+// 其余集团/等级用默认宝石深卡（wallet-card 基础样式）。
 function cardSkin(group: string, tierName: string): string {
-  if (group !== "huazhu") return "";
-  if (tierName.includes("铂金")) return "skin-hz-plat";
-  if (tierName.includes("金")) return "skin-hz-gold is-light";
-  if (tierName.includes("银")) return "skin-hz-silver is-light";
-  if (tierName.includes("星")) return "skin-hz-star is-light";
+  if (group === "huazhu") {
+    if (tierName.includes("铂金")) return "skin-hz-plat";
+    if (tierName.includes("金")) return "skin-hz-gold is-light";
+    if (tierName.includes("银")) return "skin-hz-silver is-light";
+    if (tierName.includes("星")) return "skin-hz-star is-light";
+    return "";
+  }
+  if (group === "hilton") {
+    if (tierName.includes("曜钻")) return "skin-hh-diamondplus";
+    if (tierName.includes("钻石")) return "skin-hh-diamond";
+    if (tierName.includes("金")) return "skin-hh-gold is-light";
+    if (tierName.includes("银")) return "skin-hh-silver is-light";
+    return ""; // 会员：默认希尔顿蓝深卡
+  }
   return "";
 }
 

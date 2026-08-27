@@ -160,6 +160,37 @@
   border-color:#4a5673;
 }
 
+/* ---- 希尔顿等级卡面（按通用等级色重绘）：会员=默认蓝深卡 ---- */
+/* 银卡：冷银（浅卡） */
+.wallet-card.skin-hh-silver{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #e2e6ee 0%, #cfd5e2 55%, #c4cbda 100%);
+  border-color:#b8bfd0;
+}
+/* 金卡：香槟金（浅卡） */
+.wallet-card.skin-hh-gold{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #f3d99e 0%, #e9c47c 52%, #dfb460 100%);
+  border-color:#d4a655;
+}
+/* 钻石：石墨灰（深卡，浅文字） */
+.wallet-card.skin-hh-diamond{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #4a4e57 0%, #3a3e47 50%, #2c2f37 100%);
+  border-color:#555a66;
+}
+/* 曜钻：近黑 + 微光（顶级深卡，浅文字） */
+.wallet-card.skin-hh-diamondplus{
+  background:
+    radial-gradient(120% 90% at 78% 30%, rgba(120,150,210,.14) 0%, transparent 55%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 2px, transparent 2px 4px),
+    linear-gradient(150deg, #23262e 0%, #171a20 55%, #0f1116 100%);
+  border-color:#3a4152;
+}
+
 /* 浅卡面（星/银/金）：文字/点缀翻为深色，保证对比度 */
 .wallet-card.is-light .wc-name{background:none;-webkit-text-fill-color:#2a2536;color:#2a2536}
 .wallet-card.is-light .wc-en{color:rgba(42,37,54,.55)}
@@ -220,9 +251,9 @@
 }
 .wc-logo svg{transition:transform .32s cubic-bezier(.2,.8,.2,1)}
 .wallet-card.expanded .wc-logo svg{transform:rotate(-8deg) scale(1.12)}
-/* 摘要行：钢印数字，卡号质感 */
-.wc-summary{display:flex;gap:22px;padding:0 20px 16px;font-size:12.5px;color:color-mix(in srgb,var(--text) 60%,transparent)}
-.wc-summary b{color:var(--text);font-weight:600;font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums;letter-spacing:.06em}
+/* 摘要行：钢印数字，卡号质感。卡面恒为深色 → 用固定浅色，不随 app 主题翻转（浅卡由 .is-light 覆盖） */
+.wc-summary{display:flex;gap:22px;padding:0 20px 16px;font-size:12.5px;color:rgba(236,232,224,.62)}
+.wc-summary b{color:#f3efe7;font-weight:600;font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums;letter-spacing:.06em}
 
 /* 展开体：收起时高度归零。卡面恒为深色（真房卡质感），故内部文字用固定浅色，不随主题反转 */
 .wc-body{
