@@ -832,6 +832,11 @@ dialog.paste-dialog{max-width:520px;width:calc(100vw - 32px);padding:22px 24px}
 @media (max-width:768px){
   .shell{flex-direction:column}
 
+  /* 关键修复：.page/.page-full 的 page-enter 动画含 transform，会创建层叠上下文，
+     把内部抽屉的 z-index 困在 page 内，导致抽屉底部按钮被 z-index:50 的底部导航栏盖住。
+     移动端取消该入场动画即可消除层叠上下文，让抽屉(z-index:71)正常盖过导航栏(50)。 */
+  .page,.page-full{animation:none}
+
   /* 侧栏 → 固定底部横向图标栏，只保留 5 主入口 + 更多 */
   .sidenav{
     position:fixed;left:0;right:0;bottom:0;top:auto;
