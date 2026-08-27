@@ -893,17 +893,28 @@ dialog.paste-dialog{max-width:520px;width:calc(100vw - 32px);padding:22px 24px}
   /* 月度柱状图：12 根柱子，收紧间距防溢出 */
   .bars{gap:4px}
 
-  /* 地图页：三栏 → 竖向，地图全宽 */
+  /* 地图页：三栏 → 竖向，地图全宽。
+     侧栏保持竖向布局（排序/搜索在顶部，城市列表在下方限高滚动），
+     酒店很多时只是列表内部竖向滚动，不会把搜索框/排序挤乱或撑破横向 */
   .map-layout{flex-direction:column;min-width:0}
   .map-side{
     width:100%;flex:none;
-    display:flex;flex-direction:row;gap:8px;overflow-x:auto;
+    display:flex;flex-direction:column;gap:0;overflow:visible;
     max-height:none;padding:12px 14px;border-right:none;border-bottom:1px solid var(--line);
   }
   .map-side h2{display:none}
-  .map-side .city-row{flex:0 0 auto;white-space:nowrap}
-  .map-main{min-height:60vh}
+  .map-side-head{margin-bottom:8px}
+  /* 城市列表：限高，内部竖向滚动；酒店多也不会把地图推到屏幕外 */
+  .city-list{max-height:34vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .map-side .city-row{width:100%;white-space:nowrap;padding:10px 10px}
+  /* 城市名过长时省略，保证「次数/晚数」后缀始终可见不被挤出 */
+  .map-side .city-row>span:first-of-type{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .map-main{min-height:56vh}
   .map-statbar{flex-wrap:wrap;gap:8px 14px;padding:10px 14px;font-size:11px}
+  /* 统计条在窄屏会换行变高，图例上移避免被盖住；统计条分隔竖线在换行时去掉更干净 */
+  .map-statbar span{padding:8px 14px;border-right:none}
+  .map-legend{bottom:88px}
+  .map-reset-btn{padding:6px 12px;font-size:12px}
 
   /* 表单抽屉：全宽 */
   .drawer{width:100%;max-width:100vw}
@@ -945,6 +956,16 @@ dialog.paste-dialog{max-width:520px;width:calc(100vw - 32px);padding:22px 24px}
 
   /* 常旅客表单：成对数字/日期输入在 768px 两列偏窄，直接单列更易点选 */
   .drawer .field-row{grid-template-columns:1fr;gap:12px}
+
+  /* 抽屉底部「取消/保存」按钮：给 iOS 底部安全区 + 系统手势条留白，否则会被遮住点不到；
+     body 也补足底部内边距，保证滚到底时最后一个表单项不被 foot 盖住 */
+  .drawer-foot{padding-bottom:calc(16px + env(safe-area-inset-bottom,0))}
+  .drawer-body{padding-bottom:calc(20px + env(safe-area-inset-bottom,0))}
+
+  /* 住宿记录筛选栏：窄屏搜索框占满一行、下拉平分，避免被压得太窄难以点选/输入 */
+  .filter-bar{gap:8px}
+  .filter-bar input[type="search"]{max-width:none;flex:1 1 100%}
+  .filter-bar select{flex:1 1 auto;min-width:0}
 
   /* 徽章网格：窄屏两列 */
   .badge-grid{grid-template-columns:repeat(2,1fr);gap:10px}

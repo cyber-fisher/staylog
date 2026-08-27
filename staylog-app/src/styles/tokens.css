@@ -69,6 +69,8 @@ body{
   background:var(--ink); color:var(--text);
   font-family:-apple-system,"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
   font-size:14px; line-height:1.6; min-height:100vh;
+  /* 移动端兜底：任何页面出现意外宽内容（大数字、弹窗、图表）都不引发整页横向滚动/晃动 */
+  overflow-x:hidden;
 }
 /* 展示体：衬线，标题收紧字距、加重字重 —— 证书/凭证质感 */
 .serif{font-family:"Palatino","Iowan Old Style","Times New Roman","Songti SC","SimSun",serif;letter-spacing:.01em}
