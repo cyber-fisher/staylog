@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import type { Membership, Stay } from "../types";
 import { GROUP_META } from "../types";
-import { recentMonthlyPace, tierProgress } from "../lib/stats";
+import { tierProgress, tierProjection } from "../lib/stats";
 import { IconAward, IconEdit, IconTrash } from "./Icons";
 
 interface Props {
@@ -40,15 +40,11 @@ export default function WalletCard({ membership: m, stays, expanded, onToggle, o
   const year = dayjs().year();
   const tp = tierProgress(m, stays, year);
   const yearNights = tp.progress - m.bonusNights;
-
-  const groupStays = stays.filter((s) => s.group === m.group);
-  const pace = recentMonthlyPace(groupStays, 6);
-  let forecast: string | null = null;
-  if (tp.remaining > 0 && pace > 0.1) {
-    const months = Math.ceil(tp.remaining / pace);
-    const eta = dayjs().add(months, "month");
-    forecast = eta.year() === year ? `按当前节奏预计 ${eta.month() + 1} 月达成` : "按当前节奏本年内难以达成";
-  }
+  // 规划器：叠加已订未住的晚数，回答「加上手上的预订能到哪」。ETA 逻辑在 stats.ts。
+  const proj = tierProjection(m, stays, year);
+  const forecast = proj.etaLabel;
+  // 进度轨里已订段的宽度：只画超出已住部分的增量，避免和已住段重叠
+  const bookedPct = Math.max(0, proj.projectedPct - tp.pct);
 
   const name = m.group === "other" ? m.customName || "其他集团" : meta.name;
   const en = m.group === "other" ? "CUSTOM" : meta.en;
@@ -94,7 +90,13 @@ export default function WalletCard({ membership: m, stays, expanded, onToggle, o
             </span>
             <b className="mono">{tp.progress} / {tp.threshold} 晚</b>
           </div>
-          <div className="rail"><i style={{ width: `${tp.pct}%` }} /></div>
+          <div className="rail">
+            <i style={{ width: `${tp.pct}%` }} />
+            {/* 已订未住段：紧接已住段之后，斜纹半透明金 */}
+            {bookedPct > 0 && (
+              <i className="projected" style={{ left: `${tp.pct}%`, width: `${bookedPct}%` }} />
+            )}
+          </div>
           <div className="wc-note">
             {tp.mode === "top"
               ? "已达最高等级 ✓"
@@ -103,6 +105,16 @@ export default function WalletCard({ membership: m, stays, expanded, onToggle, o
                 : "目标已达成 ✓"}
             {forecast && ` · ${forecast}`}
           </div>
+          {/* 规划器：手上还有预订、且尚未达成时才有信息量 */}
+          {proj.upcomingNights > 0 && tp.mode !== "top" && tp.remaining > 0 && (
+            <div className="wc-note projected-note">
+              含已订 <b className="mono">{proj.upcomingNights}</b> 晚 → 可达{" "}
+              <b className="mono">{proj.projected} / {tp.threshold}</b>
+              {proj.remainingAfterBooked > 0
+                ? `，届时还差 ${proj.remainingAfterBooked} 晚`
+                : "，届时即可达成 ✓"}
+            </div>
+          )}
         </div>
 
         {(m.bonusNights > 0 || m.tierExpiry) && (

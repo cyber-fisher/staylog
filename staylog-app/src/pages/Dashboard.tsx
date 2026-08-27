@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { useStaylog } from "../store/staylog";
-import { monthlyNights, summarizeYear } from "../lib/stats";
+import { monthlyNights, stayedOnly, summarizeYear } from "../lib/stats";
+import { repeatDraft } from "../lib/stayDraft";
 import StayCard from "../components/StayCard";
 import StayForm from "../components/StayForm";
 import EmptyState from "../components/EmptyState";
+import UpcomingTrip from "../components/UpcomingTrip";
 import type { Stay } from "../types";
 import { IconPlus } from "../components/Icons";
 
@@ -14,18 +16,38 @@ export default function Dashboard() {
   const stays = useStaylog((s) => s.stays);
   const addStay = useStaylog((s) => s.addStay);
   const [formOpen, setFormOpen] = useState(false);
+  const [formInitial, setFormInitial] = useState<Stay | null>(null);
   const year = dayjs().year();
 
   const summary = useMemo(() => summarizeYear(stays, year), [stays, year]);
   const months = useMemo(() => monthlyNights(stays, year), [stays, year]);
   const maxMonth = Math.max(1, ...months);
-  const recent = useMemo(() => stays.slice(0, 5), [stays]);
+  // 近期入住只看已住——未来行程由上方倒计时卡负责
+  const recent = useMemo(() => stayedOnly(stays).slice(0, 5), [stays]);
+
+  function openNew() {
+    setFormInitial(null);
+    setFormOpen(true);
+  }
+  function openRepeat(src: Stay) {
+    setFormInitial(repeatDraft(src));
+    setFormOpen(true);
+  }
+  function handleSave(s: Stay) {
+    addStay(s);
+    setFormOpen(false);
+    setFormInitial(null);
+  }
+  function handleClose() {
+    setFormOpen(false);
+    setFormInitial(null);
+  }
 
   if (stays.length === 0) {
     return (
       <main className="page">
-        <EmptyState onAdd={() => setFormOpen(true)} />
-        <StayForm open={formOpen} onSave={(s) => { addStay(s); setFormOpen(false); }} onClose={() => setFormOpen(false)} />
+        <EmptyState onAdd={openNew} />
+        <StayForm open={formOpen} initial={formInitial} onSave={handleSave} onClose={handleClose} />
       </main>
     );
   }
@@ -41,10 +63,12 @@ export default function Dashboard() {
             今年住了 <em style={{ color: "var(--brass)", fontStyle: "normal" }}>{summary.nights}</em> 晚
           </h1>
         </div>
-        <button className="btn btn-primary" onClick={() => setFormOpen(true)}>
+        <button className="btn btn-primary" onClick={openNew}>
           <IconPlus width={14} height={14} /> 新增记录
         </button>
       </div>
+
+      <UpcomingTrip stays={stays} />
 
       <div className="stats-grid" style={{ marginBottom: 40 }}>
         <div className="card stat">
@@ -99,10 +123,10 @@ export default function Dashboard() {
           <span className="en">RECENT STAYS</span>
           <div className="rule" />
         </div>
-        {recent.map((s: Stay) => <StayCard key={s.id} stay={s} />)}
+        {recent.map((s: Stay) => <StayCard key={s.id} stay={s} onRepeat={openRepeat} />)}
       </section>
 
-      <StayForm open={formOpen} onSave={(s) => { addStay(s); setFormOpen(false); }} onClose={() => setFormOpen(false)} />
+      <StayForm open={formOpen} initial={formInitial} onSave={handleSave} onClose={handleClose} />
     </main>
   );
 }

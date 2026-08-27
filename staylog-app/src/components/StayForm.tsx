@@ -4,6 +4,7 @@ import type { LoyaltyGroup, Stay } from "../types";
 import { GROUP_BRANDS, GROUP_META } from "../types";
 import { geocodeCity } from "../lib/geocode";
 import { matchBrand } from "../lib/brandMatch";
+import { isUpcoming } from "../lib/stats";
 import { searchPoi, AmapError, amapErrorText, AMAP_KEY, type AmapPoi } from "../lib/amap";
 import { IconX, IconSearch } from "./Icons";
 
@@ -264,6 +265,10 @@ export default function StayForm({ open, initial, onSave, onClose }: Props) {
                 min={form.checkIn} onChange={(e) => set("checkOut", e.target.value)} />
             </div>
           </div>
+          {/* 未来日期 = 已订未住。提前说明不进统计，免得用户以为首页数字没刷新 */}
+          {isUpcoming(form) && (
+            <div className="geo-status">未来日期，将记为「即将入住」，暂不计入统计</div>
+          )}
           <div className="field">
             <label htmlFor="roomType">房型（选填）</label>
             <input id="roomType" value={form.roomType || ""}

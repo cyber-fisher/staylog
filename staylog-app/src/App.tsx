@@ -9,10 +9,11 @@ import ConfirmDialog from "./components/ConfirmDialog";
 import { useAuth, useCurrentUser } from "./store/auth";
 import { useStaylog } from "./store/staylog";
 import {
-  IconAward, IconBed, IconChart, IconDashboard, IconMap, IconMenu, IconMoon, IconSettings, IconSun, IconX,
+  IconAward, IconBed, IconChart, IconDashboard, IconMap, IconMenu, IconMoon, IconRoute, IconSettings, IconSun, IconX,
 } from "./components/Icons";
 
 const MapPage = lazy(() => import("./pages/MapPage"));
+const Journey = lazy(() => import("./pages/Journey"));
 const Stats = lazy(() => import("./pages/Stats"));
 const Wrapped = lazy(() => import("./pages/Wrapped"));
 
@@ -137,6 +138,7 @@ export default function App() {
             <NavLink to="/" end><span className="ico"><IconDashboard /></span>总览</NavLink>
             <NavLink to="/stays"><span className="ico"><IconBed /></span>住宿记录</NavLink>
             <NavLink to="/programs"><span className="ico"><IconAward /></span>常旅客计划</NavLink>
+            <NavLink to="/journey"><span className="ico"><IconRoute /></span>轨迹</NavLink>
             <NavLink to="/map"><span className="ico"><IconMap /></span>足迹地图</NavLink>
             <NavLink to="/stats"><span className="ico"><IconChart /></span>统计分析</NavLink>
             {/* 仅移动端底部栏显示的「更多」入口 */}
@@ -174,6 +176,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/stays" element={<Stays />} />
           <Route path="/programs" element={<Programs />} />
+          <Route path="/journey" element={<Journey />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/stats/wrapped/:year" element={<Wrapped />} />

@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import { useStaylog } from "../store/staylog";
-import { distanceKm, aggregateCities, nightsOf, staysInYear, summarizeYear } from "../lib/stats";
-import { GROUP_META, type LoyaltyGroup } from "../types";
-import { IconX } from "../components/Icons";
+import { distanceKm, aggregateCities, staysInYear, summarizeYear, topGroupInYear } from "../lib/stats";
+import { renderShareCard } from "../lib/shareCard";
+import { IconDownload, IconX } from "../components/Icons";
 
 export default function Wrapped() {
   const { year: yearParam } = useParams();
@@ -14,17 +14,8 @@ export default function Wrapped() {
   const inYear = useMemo(() => staysInYear(stays, year), [stays, year]);
   const summary = useMemo(() => summarizeYear(stays, year), [stays, year]);
 
-  const topBrand = useMemo(() => {
-    const byGroup: Record<string, number> = {};
-    for (const s of inYear) byGroup[s.group] = (byGroup[s.group] || 0) + nightsOf(s);
-    const top = Object.entries(byGroup).sort((a, b) => b[1] - a[1])[0];
-    if (!top) return null;
-    const s = inYear.find((x) => x.group === top[0]);
-    return {
-      name: top[0] === "other" ? s?.customGroupName || "其他" : GROUP_META[top[0] as LoyaltyGroup]?.name || "其他",
-      nights: top[1],
-    };
-  }, [inYear]);
+  // 计算逻辑在 stats.ts，分享图共用同一份，避免页面与图片对不上
+  const topBrand = useMemo(() => topGroupInYear(stays, year), [stays, year]);
 
   const highest = useMemo(
     () => [...inYear].filter((s) => s.rate && s.currency === "CNY").sort((a, b) => (b.rate || 0) - (a.rate || 0))[0] || null,
@@ -47,6 +38,35 @@ export default function Wrapped() {
     () => [...inYear].filter((s) => s.rating != null).sort((a, b) => (b.rating || 0) - (a.rating || 0))[0] || null,
     [inYear]
   );
+
+  const [shareState, setShareState] = useState<"idle" | "rendering" | "error">("idle");
+
+  async function saveShareCard() {
+    setShareState("rendering");
+    try {
+      const blob = await renderShareCard({
+        year,
+        nights: summary.nights,
+        cities: summary.cities,
+        countries: summary.countries,
+        hotels: summary.hotels,
+        pointsEarned: summary.pointsEarned,
+        topCities: aggregateCities(inYear).slice(0, 5).map((c) => ({ city: c.city, nights: c.nights })),
+        topGroupName: topBrand?.name ?? null,
+        topGroupNights: topBrand?.nights ?? 0,
+      });
+      // 用临时 <a download> 触发下载；URL 必须在点击后才回收，否则 Safari 会拿到空对象
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `staylog-wrapped-${year}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setShareState("idle");
+    } catch {
+      setShareState("error");
+    }
+  }
 
   if (inYear.length === 0) {
     return (
@@ -138,9 +158,18 @@ export default function Wrapped() {
         <div className="big mono serif">{summary.pointsEarned.toLocaleString()}</div>
         <div className="headline serif">分入账</div>
         <div className="sub">下一次免费住宿正在路上。{year + 1} 年，继续在路上见。</div>
-        <Link to="/stats" className="btn btn-primary" style={{ textDecoration: "none", marginTop: 10 }}>
-          回到统计
-        </Link>
+        <div className="wrapped-cta">
+          <button className="btn btn-primary" onClick={saveShareCard} disabled={shareState === "rendering"}>
+            <IconDownload width={14} height={14} />
+            {shareState === "rendering" ? "生成中…" : "保存分享图"}
+          </button>
+          <Link to="/stats" className="btn" style={{ textDecoration: "none" }}>
+            回到统计
+          </Link>
+        </div>
+        {shareState === "error" && (
+          <div className="sub" style={{ color: "var(--danger)" }}>生成失败，请重试。</div>
+        )}
       </div>
     </div>
   );

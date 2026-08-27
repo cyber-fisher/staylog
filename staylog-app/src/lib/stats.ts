@@ -1,13 +1,33 @@
 import dayjs from "dayjs";
 import type { LoyaltyGroup, Membership, Stay, TierDef } from "../types";
-import { GROUP_TIERS } from "../types";
+import { GROUP_META, GROUP_TIERS } from "../types";
 
 export function nightsOf(stay: Stay): number {
   return Math.max(1, dayjs(stay.checkOut).diff(dayjs(stay.checkIn), "day"));
 }
 
+// ============ 时态：已住 vs 已订未住 ============
+// 没有 status 字段，纯按日期推导：入住日晚于今天 = 未来行程。
+// 未来行程不能进任何统计口径（否则首页 KPI/地图/年度总结会把还没发生的事算进去），
+// 所以过滤下沉到本文件每个聚合函数的入口——调用方无法漏掉。
+
+/** 未来行程：入住日在今天之后 → 已订未住 */
+export function isUpcoming(s: Stay): boolean {
+  return dayjs(s.checkIn).isAfter(dayjs(), "day");
+}
+
+/** 剔除未来行程，只留已发生的住宿 */
+export function stayedOnly(stays: Stay[]): Stay[] {
+  return stays.filter((s) => !isUpcoming(s));
+}
+
+/** 已订未住，按入住日升序（最近的一趟在前） */
+export function upcomingOf(stays: Stay[]): Stay[] {
+  return stays.filter(isUpcoming).sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+}
+
 export function staysInYear(stays: Stay[], year: number): Stay[] {
-  return stays.filter((s) => dayjs(s.checkIn).year() === year);
+  return stayedOnly(stays).filter((s) => dayjs(s.checkIn).year() === year);
 }
 
 export interface YearSummary {
@@ -26,7 +46,7 @@ export interface YearSummary {
 
 export function summarizeYear(stays: Stay[], year: number): YearSummary {
   const inYear = staysInYear(stays, year);
-  const before = stays.filter((s) => dayjs(s.checkIn).year() < year);
+  const before = stayedOnly(stays).filter((s) => dayjs(s.checkIn).year() < year);
   const beforeCities = new Set(before.map((s) => s.city));
   const beforeCountries = new Set(before.map((s) => s.country));
 
@@ -68,7 +88,7 @@ export function monthlyNights(stays: Stay[], year: number): number[] {
 }
 
 export function nightsByGroup(stays: Stay[], year?: number): Record<string, number> {
-  const src = year == null ? stays : staysInYear(stays, year);
+  const src = year == null ? stayedOnly(stays) : staysInYear(stays, year);
   const out: Record<string, number> = {};
   for (const s of src) out[s.group] = (out[s.group] || 0) + nightsOf(s);
   return out;
@@ -85,7 +105,7 @@ export interface CityAgg {
 
 export function aggregateCities(stays: Stay[]): CityAgg[] {
   const map = new Map<string, CityAgg>();
-  for (const s of stays) {
+  for (const s of stayedOnly(stays)) {
     const cur = map.get(s.city) || { city: s.city, country: s.country, nights: 0, stays: 0 };
     cur.nights += nightsOf(s);
     cur.stays += 1;
@@ -111,7 +131,7 @@ export interface HotelAgg {
 export function aggregateHotels(stays: Stay[]): HotelAgg[] {
   // 按 酒店名+城市 聚合：连锁品牌（全季/汉庭…）在不同城市同名，不能合并成一个地图点。
   const map = new Map<string, HotelAgg & { _ratingSum: number; _ratingCount: number }>();
-  for (const s of stays) {
+  for (const s of stayedOnly(stays)) {
     const key = `${s.hotelName}|${s.city}`;
     const cur =
       map.get(key) ||
@@ -142,17 +162,101 @@ export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: numbe
   return Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-/** 近 n 个月月均晚数（含当月），用于会籍达成预测 */
+/** 近 n 个月月均晚数（含当月），用于会籍达成预测。只算已住——未来预订不能抬高节奏。 */
 export function recentMonthlyPace(stays: Stay[], months = 6): number {
   const cutoff = dayjs().subtract(months, "month").startOf("month");
-  const nights = stays
+  const nights = stayedOnly(stays)
     .filter((s) => dayjs(s.checkIn).isAfter(cutoff))
     .reduce((n, s) => n + nightsOf(s), 0);
   return nights / months;
 }
 
+/** 年份列表。刻意不过滤未来行程——住宿记录页需要能显示明年的预订分组。 */
 export function yearsWithData(stays: Stay[]): number[] {
   return [...new Set(stays.map((s) => dayjs(s.checkIn).year()))].sort((a, b) => b - a);
+}
+
+/** 某年住得最多的集团（Wrapped 与分享图共用，避免两处逻辑漂移） */
+export function topGroupInYear(
+  stays: Stay[],
+  year: number
+): { group: LoyaltyGroup; name: string; nights: number } | null {
+  const inYear = staysInYear(stays, year);
+  const byGroup: Record<string, number> = {};
+  for (const s of inYear) byGroup[s.group] = (byGroup[s.group] || 0) + nightsOf(s);
+  const top = Object.entries(byGroup).sort((a, b) => b[1] - a[1])[0];
+  if (!top) return null;
+  const group = top[0] as LoyaltyGroup;
+  const sample = inYear.find((x) => x.group === group);
+  const name =
+    group === "other"
+      ? sample?.customGroupName || "其他"
+      : GROUP_META[group]?.name || "其他";
+  return { group, name, nights: top[1] };
+}
+
+// ============ 日级占用（热力日历用）============
+
+export interface DayCell {
+  /** YYYY-MM-DD */
+  date: string;
+  /** 该日入住的记录数（跨日重叠时可 >1） */
+  nights: number;
+  stays: Stay[];
+}
+
+/**
+ * 把每条记录摊成它实际占用的每一晚（checkIn 含、checkOut 不含），裁剪到指定年份。
+ *
+ * ⚠️ 与 staysInYear/summarizeYear 的口径**刻意不同**：本函数按真实住宿日历切分，
+ * 12/30 入住、1/3 离店会正确拆成 2025 年 2 晚 + 2026 年 3 晚；而 summarizeYear
+ * 按 checkIn 年份把 5 晚整段归给 2025。所以存在跨年住宿时，热力图格子数与
+ * 首页 KPI 的「住宿晚数」可能差几晚。热力图下方有小字说明。
+ */
+export function dailyOccupancy(stays: Stay[], year: number): Map<string, DayCell> {
+  const out = new Map<string, DayCell>();
+  const yearStart = dayjs(`${year}-01-01`);
+  const yearEnd = dayjs(`${year}-12-31`);
+  for (const s of stayedOnly(stays)) {
+    const ci = dayjs(s.checkIn);
+    const nights = nightsOf(s);
+    for (let i = 0; i < nights; i++) {
+      const d = ci.add(i, "day");
+      if (d.isBefore(yearStart, "day") || d.isAfter(yearEnd, "day")) continue;
+      const key = d.format("YYYY-MM-DD");
+      const cur = out.get(key) || { date: key, nights: 0, stays: [] };
+      cur.nights += 1;
+      cur.stays.push(s);
+      out.set(key, cur);
+    }
+  }
+  return out;
+}
+
+/** 最长连续住宿天数（日期集合内的最长连续段） */
+export function longestStreak(dates: Iterable<string>): number {
+  const sorted = [...dates].sort();
+  let best = 0;
+  let run = 0;
+  let prev: dayjs.Dayjs | null = null;
+  for (const d of sorted) {
+    const cur = dayjs(d);
+    run = prev && cur.diff(prev, "day") === 1 ? run + 1 : 1;
+    if (run > best) best = run;
+    prev = cur;
+  }
+  return best;
+}
+
+/** 两次住宿之间的最长空档天数（首次住宿之前、末次之后的时间不计） */
+export function longestGap(dates: Iterable<string>): number {
+  const sorted = [...dates].sort();
+  let best = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = dayjs(sorted[i]).diff(dayjs(sorted[i - 1]), "day") - 1;
+    if (gap > best) best = gap;
+  }
+  return best;
 }
 
 // ============ 常旅客定级（基于内置 GROUP_TIERS 派生）============
@@ -247,5 +351,66 @@ function manualProgress(m: Membership, progress: number): TierProgress {
     pct: threshold > 0 ? Math.min(100, Math.round((progress / threshold) * 100)) : 0,
     remaining: Math.max(0, threshold - progress),
     targetName: m.targetTier || null,
+  };
+}
+
+// ============ 定级规划器 ============
+
+export interface TierProjection {
+  /** 本定级年内、该集团的已订未住晚数 */
+  upcomingNights: number;
+  /** tierProgress.progress + upcomingNights */
+  projected: number;
+  /** 0-100，算上已订之后的进度 */
+  projectedPct: number;
+  /** 算上已订之后还差多少晚 */
+  remainingAfterBooked: number;
+  /** 按近 6 个月节奏预测的达成月份，null = 已达成或无法预测 */
+  etaLabel: string | null;
+}
+
+/**
+ * 在 tierProgress（只算已住）之上叠加已订未住的晚数，回答「加上手上的预订能到哪」。
+ * ETA 逻辑原先内联在 WalletCard 里，抽到这里让卡片和规划器共用一份。
+ */
+export function tierProjection(
+  m: Membership,
+  stays: Stay[],
+  year: number
+): TierProjection {
+  const tp = tierProgress(m, stays, year);
+  // 已订未住中，属于该集团且入住日落在本定级年内的晚数
+  const upcomingNights = upcomingOf(stays)
+    .filter((s) => s.group === m.group && dayjs(s.checkIn).year() === year)
+    .reduce((n, s) => n + nightsOf(s), 0);
+
+  const projected = tp.progress + upcomingNights;
+  const remainingAfterBooked = Math.max(0, tp.threshold - projected);
+
+  // 已达成 / 无门槛 → 不预测
+  let etaLabel: string | null = null;
+  if (remainingAfterBooked > 0 && tp.threshold > 0) {
+    // 节奏只看该集团自己的历史——混算别家会高估达成速度
+    const pace = recentMonthlyPace(
+      stays.filter((s) => s.group === m.group),
+      6
+    );
+    if (pace > 0.1) {
+      const months = Math.ceil(remainingAfterBooked / pace);
+      const eta = dayjs().add(months, "month");
+      etaLabel =
+        eta.year() === year
+          ? `按当前节奏预计 ${eta.month() + 1} 月达成`
+          : "按当前节奏本年内难以达成";
+    }
+  }
+
+  return {
+    upcomingNights,
+    projected,
+    projectedPct:
+      tp.threshold > 0 ? Math.min(100, Math.round((projected / tp.threshold) * 100)) : 0,
+    remainingAfterBooked,
+    etaLabel,
   };
 }

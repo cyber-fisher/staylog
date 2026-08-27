@@ -2,14 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 import { useStaylog } from "../store/staylog";
-import { nightsOf, yearsWithData } from "../lib/stats";
+import { isUpcoming, nightsOf, yearsWithData } from "../lib/stats";
+import { repeatDraft } from "../lib/stayDraft";
 import StayCard from "../components/StayCard";
 import StayForm from "../components/StayForm";
+import ImportPasteDialog from "../components/ImportPasteDialog";
 import ConfirmDialog from "../components/ConfirmDialog";
 import EmptyState from "../components/EmptyState";
 import type { LoyaltyGroup, Stay } from "../types";
 import { GROUP_META } from "../types";
-import { IconPlus } from "../components/Icons";
+import { IconClipboard, IconPlus } from "../components/Icons";
 
 export default function Stays() {
   const stays = useStaylog((s) => s.stays);
@@ -19,7 +21,11 @@ export default function Stays() {
 
   const [searchParams] = useSearchParams();
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Stay | null>(null);
+  // 表单「模式」与「初值」必须分开：「再住一次」和「粘贴导入」都是 initial 有值
+  // 但要走 addStay，靠 editing 是否为空来区分会把新记录写成覆盖编辑。
+  const [formMode, setFormMode] = useState<"new" | "edit">("new");
+  const [formInitial, setFormInitial] = useState<Stay | null>(null);
+  const [pasteOpen, setPasteOpen] = useState(false);
   const [deleting, setDeleting] = useState<Stay | null>(null);
   const [q, setQ] = useState(() => searchParams.get("q") ?? "");
   const [groupFilter, setGroupFilter] = useState<"" | LoyaltyGroup>("");
@@ -33,12 +39,16 @@ export default function Stays() {
 
 
   const years = useMemo(() => yearsWithData(stays), [stays]);
+  const upcomingCount = useMemo(() => stays.filter(isUpcoming).length, [stays]);
 
   const filtered = useMemo(() => {
     const kw = q.trim().toLowerCase();
     return stays.filter((s) => {
       if (groupFilter && s.group !== groupFilter) return false;
-      if (yearFilter && String(dayjs(s.checkIn).year()) !== yearFilter) return false;
+      // 年份下拉里 "upcoming" 是特殊值：只看已订未住，不按年份比对
+      if (yearFilter === "upcoming") {
+        if (!isUpcoming(s)) return false;
+      } else if (yearFilter && String(dayjs(s.checkIn).year()) !== yearFilter) return false;
       if (kw) {
         const hay = `${s.hotelName} ${s.hotelNameEn || ""} ${s.city} ${s.country} ${s.brand} ${s.notes || ""} ${(s.tags || []).join(" ")}`.toLowerCase();
         if (!hay.includes(kw)) return false;
@@ -56,11 +66,39 @@ export default function Stays() {
     return [...map.entries()].sort((a, b) => b[0] - a[0]);
   }, [filtered]);
 
+  function openNew() {
+    setFormMode("new");
+    setFormInitial(null);
+    setFormOpen(true);
+  }
+  function openEdit(stay: Stay) {
+    setFormMode("edit");
+    setFormInitial(stay);
+    setFormOpen(true);
+  }
+  /** 「再住一次」：同一家酒店换日期新开一条，不覆盖原记录 */
+  function openRepeat(src: Stay) {
+    setFormMode("new");
+    setFormInitial(repeatDraft(src));
+    setFormOpen(true);
+  }
+  /** 粘贴导入解析完的草稿：仍走 StayForm 做确认，复用它的校验与高德补全 */
+  function openFromDraft(draft: Stay) {
+    setFormMode("new");
+    setFormInitial(draft);
+    setPasteOpen(false);
+    setFormOpen(true);
+  }
+
   function save(stay: Stay) {
-    if (editing) updateStay(stay.id, stay);
+    if (formMode === "edit") updateStay(stay.id, stay);
     else addStay(stay);
     setFormOpen(false);
-    setEditing(null);
+    setFormInitial(null);
+  }
+  function closeForm() {
+    setFormOpen(false);
+    setFormInitial(null);
   }
 
   return (
@@ -70,13 +108,18 @@ export default function Stays() {
           <h1 className="serif">住宿记录</h1>
           <div className="sub">共 {stays.length} 条记录 · {stays.reduce((n, s) => n + nightsOf(s), 0)} 晚</div>
         </div>
-        <button className="btn btn-primary" onClick={() => { setEditing(null); setFormOpen(true); }}>
-          <IconPlus width={14} height={14} /> 新增记录
-        </button>
+        <div className="head-actions">
+          <button className="btn" onClick={() => setPasteOpen(true)}>
+            <IconClipboard width={14} height={14} /> 粘贴导入
+          </button>
+          <button className="btn btn-primary" onClick={openNew}>
+            <IconPlus width={14} height={14} /> 新增记录
+          </button>
+        </div>
       </div>
 
       {stays.length === 0 ? (
-        <EmptyState onAdd={() => setFormOpen(true)} />
+        <EmptyState onAdd={openNew} />
       ) : (
         <>
           <div className="filter-bar">
@@ -90,6 +133,7 @@ export default function Stays() {
             </select>
             <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} aria-label="按年份筛选">
               <option value="">全部年份</option>
+              {upcomingCount > 0 && <option value="upcoming">即将入住（{upcomingCount}）</option>}
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
             {(q || groupFilter || yearFilter) && (
@@ -106,7 +150,8 @@ export default function Stays() {
               </div>
               {list.map((s) => (
                 <StayCard key={s.id} stay={s}
-                  onEdit={(st) => { setEditing(st); setFormOpen(true); }}
+                  onEdit={openEdit}
+                  onRepeat={openRepeat}
                   onDelete={(st) => setDeleting(st)} />
               ))}
             </section>
@@ -114,8 +159,9 @@ export default function Stays() {
         </>
       )}
 
-      <StayForm open={formOpen} initial={editing}
-        onSave={save} onClose={() => { setFormOpen(false); setEditing(null); }} />
+      <StayForm open={formOpen} initial={formInitial}
+        onSave={save} onClose={closeForm} />
+      <ImportPasteDialog open={pasteOpen} onClose={() => setPasteOpen(false)} onApply={openFromDraft} />
       <ConfirmDialog
         open={!!deleting}
         title="删除这条住宿记录？"

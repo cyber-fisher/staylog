@@ -110,6 +110,47 @@
 .stay-card .actions button{font-size:11.5px;color:var(--muted);padding:2px 6px;border-radius:6px}
 .stay-card .actions button:hover{color:var(--brass);background:var(--surface-2)}
 .stay-card .actions button.del:hover{color:var(--danger)}
+/* 已订未住：虚线边 —— 「还没落地」的视觉隐喻，与已住的实线卡一眼可分 */
+.stay-card.upcoming{border-style:dashed;border-color:color-mix(in srgb,var(--brass) 46%,var(--line))}
+.stay-card.upcoming:hover{border-style:dashed}
+.stay-card .upcoming-chip{--bc:var(--brass);letter-spacing:.06em}
+
+/* ============ 即将入住倒计时（首页）============
+   Flighty 式的「下一趟」。金色只用在描边与天数上，卡面保持石墨底。 */
+.upcoming{
+  padding:0;overflow:hidden;margin-bottom:22px;
+  border-color:color-mix(in srgb,var(--brass) 40%,var(--line));
+  animation:card-enter .46s cubic-bezier(.2,.8,.2,1) both;
+}
+.upcoming-main{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:18px 22px}
+.uc-count{display:flex;flex-direction:column;gap:4px;min-width:104px}
+/* .eyebrow 在 .wrapped-card 里另有一套（更大字距），此处限定在倒计时卡内 */
+.uc-count .eyebrow{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10.5px;letter-spacing:.14em;color:var(--muted);
+}
+.uc-days{font-size:40px;line-height:1;color:var(--brass)}
+.uc-days small{font-size:13px;color:var(--faint);margin-left:3px;letter-spacing:0}
+.uc-body{min-width:0}
+.uc-hotel{font-size:16px;font-weight:600;margin-bottom:4px}
+.uc-hotel .en{color:var(--faint);font-weight:400;font-size:12px;margin-left:6px}
+.uc-meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);align-items:center;margin-bottom:5px}
+.uc-dates{font-size:12.5px;color:var(--text)}
+.uc-dates .sep{color:var(--faint);margin:0 6px}
+/* 次要行程：压缩成一行，只给日期/酒店/城市/倒数 */
+.upcoming-rest{list-style:none;border-top:1px solid var(--line);background:var(--surface-2)}
+.upcoming-rest li{
+  display:flex;align-items:center;gap:12px;padding:9px 22px;font-size:12.5px;
+  border-bottom:1px solid var(--line);
+}
+.upcoming-rest li:last-child{border-bottom:none}
+.upcoming-rest .d{color:var(--brass);flex:0 0 auto}
+.upcoming-rest .h{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upcoming-rest .c{color:var(--muted);flex:0 0 auto}
+.upcoming-rest .n{margin-left:auto;color:var(--faint);flex:0 0 auto}
+
+/* 页头多按钮：主操作 + 次要操作并排 */
+.head-actions{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
 
 /* ============ 会籍卡包（房卡质感·叠放·点击展开）============ */
 .wallet-stack{display:flex;flex-direction:column;padding-top:6px}
@@ -264,9 +305,26 @@
 .wallet-card.expanded .wc-body{max-height:440px;opacity:1;padding:0 20px 18px}
 .wc-track .cap{display:flex;justify-content:space-between;font-size:11.5px;color:rgba(236,232,224,.6);margin-bottom:6px}
 .wc-track .cap b{color:#ece8e0;font-weight:500;font-family:ui-monospace,"SF Mono","Menlo",monospace;letter-spacing:.05em}
-.wc-track .rail{height:6px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden}
+.wc-track .rail{position:relative;height:6px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden}
 .wc-track .rail i{display:block;height:100%;border-radius:99px;background:var(--gold-foil)}
 .wallet-card.expanded .wc-track .rail i{animation:progress-grow .55s .08s cubic-bezier(.2,.8,.2,1) both;transform-origin:left}
+/* 已订未住段：紧接已住段之后。斜纹半透明金 —— 与实心已住段一眼可分，
+   又不抢主进度的视觉重量。绝对定位，left 由 JS 传入的已住百分比给出。 */
+.wc-track .rail i.projected{
+  position:absolute;top:0;background:none;
+  background-image:repeating-linear-gradient(45deg,
+    rgba(244,215,138,.62) 0 3px, transparent 3px 6px);
+  border-radius:0 99px 99px 0;
+}
+.wc-note.projected-note{color:rgba(236,232,224,.58)}
+.wc-note.projected-note b{color:#f4d78a;font-weight:500}
+/* 浅卡（华住星/银/金、希尔顿银/金）上金色斜纹会糊掉 → 换深色斜纹 */
+.wallet-card.is-light .wc-track .rail i.projected{
+  background-image:repeating-linear-gradient(45deg,
+    rgba(42,37,54,.45) 0 3px, transparent 3px 6px);
+}
+.wallet-card.is-light .wc-note.projected-note{color:rgba(42,37,54,.6)}
+.wallet-card.is-light .wc-note.projected-note b{color:#241f30}
 .wc-note{font-size:11px;color:rgba(236,232,224,.42);margin-top:7px}
 .wc-facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:rgba(236,232,224,.6);margin-top:12px}
 .wc-facts b{color:#ece8e0;font-family:ui-monospace,"SF Mono","Menlo",monospace;letter-spacing:.04em}
@@ -464,6 +522,86 @@
 .wrapped-card .pill-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:560px}
 .wrapped-card .pill{padding:6px 14px;border-radius:99px;border:1px solid var(--line);font-size:13px;color:var(--muted)}
 .wrapped-exit{position:fixed;top:22px;right:26px;z-index:10}
+.wrapped-cta{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.wrapped-cta .btn:disabled{opacity:.6;cursor:default;transform:none}
+
+/* ============ 轨迹页：热力日历 ============
+   7 行（周日→周六）× 53 列布局交给 grid-auto-flow:column，
+   格子按日期顺序铺进去即可，不需要手算二维坐标。 */
+.heatmap-card{padding:18px 20px}
+.hm-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.hm-head .t{font-size:12px;color:var(--muted);letter-spacing:.12em}
+.hm-head select{width:auto;padding:5px 10px;font-size:12.5px}
+/* 窄屏横向滚动：整年 53 列在手机上必然溢出，滚动比压缩格子更可读 */
+.hm-scroll{overflow-x:auto;padding-bottom:6px}
+.hm-inner{min-width:760px}
+.hm-months{
+  display:grid;grid-template-columns:repeat(53,13px);gap:3px;
+  font-size:10px;color:var(--faint);margin-bottom:5px;margin-left:20px;
+}
+.hm-months span{white-space:nowrap}
+.hm-body{display:flex;gap:6px}
+.hm-weeks{
+  display:grid;grid-template-rows:repeat(7,13px);gap:3px;
+  font-size:9.5px;color:var(--faint);width:14px;
+  align-items:center;justify-items:end;
+}
+.hm-grid{
+  display:grid;grid-template-rows:repeat(7,13px);grid-auto-flow:column;
+  grid-auto-columns:13px;gap:3px;
+}
+.hm-cell{display:block;width:13px;height:13px;border-radius:3px;background:var(--surface-2)}
+.hm-cell.empty{background:none}
+/* 4 档强度：金色递增 alpha。无住宿档保持中性面，让有住宿的日子跳出来 */
+.hm-cell.lv0{background:var(--surface-2)}
+.hm-cell.lv1{background:color-mix(in srgb,var(--gold) 32%,var(--surface-2))}
+.hm-cell.lv2{background:color-mix(in srgb,var(--gold) 62%,var(--surface-2))}
+.hm-cell.lv3{background:var(--gold);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+.hm-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+}
+.hm-sum{font-size:12.5px;color:var(--muted)}
+.hm-sum b{color:var(--brass);font-weight:500}
+.hm-legend{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--faint)}
+.hm-legend .hm-cell{width:11px;height:11px}
+.hm-note{font-size:11px;color:var(--faint);line-height:1.55;margin-top:10px}
+
+/* ============ 轨迹页：成就徽章 ============
+   已解锁 = 金箔描边 + 金色印章；进行中 = 降饱和 + 细进度条。 */
+.badge-wrap{display:flex;flex-direction:column;gap:12px}
+.bg-group{font-size:11px;letter-spacing:.14em;color:var(--muted);margin-top:6px}
+.bg-group b{color:var(--brass);font-weight:500}
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.badge{
+  padding:16px 18px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--line);
+  display:flex;flex-direction:column;gap:4px;
+  transition:transform .24s cubic-bezier(.2,.8,.2,1),border-color .2s ease;
+}
+.badge:hover{transform:translateY(-2px)}
+.bg-seal{
+  width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  margin-bottom:6px;background:var(--surface-2);color:var(--faint);border:1px solid var(--line);
+}
+.bg-name{font-size:15px;font-weight:600}
+.bg-en{font-size:9.5px;letter-spacing:.18em;color:var(--faint)}
+.bg-desc{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:4px}
+.bg-at{font-size:10.5px;color:var(--faint);margin-top:6px}
+.bg-bar{height:3px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:9px}
+.bg-bar i{display:block;height:100%;border-radius:99px;background:var(--brass);opacity:.7}
+/* 已解锁：金箔压印章 + 金描边，名称烫金 */
+.badge.on{border-color:color-mix(in srgb,var(--brass) 42%,var(--line));box-shadow:var(--emboss)}
+.badge.on:hover{border-color:var(--brass)}
+.badge.on .bg-seal{background:var(--gold-foil);color:#241c08;border-color:transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.badge.on .bg-name{color:var(--brass)}
+.badge.on .bg-at{color:var(--brass);opacity:.8}
+/* 金牌级别再加一圈外环，与铜/银拉开 */
+.badge.on.bt-gold{box-shadow:var(--emboss),0 0 0 1px color-mix(in srgb,var(--brass) 26%,transparent)}
+/* 进行中：整体降饱和降透明，不参与视觉竞争 */
+.badge.off{opacity:.62}
+.badge.off:hover{opacity:.85}
+.badge.off .bg-name{color:var(--muted);font-weight:500}
 
 /* ============ 空状态 ============ */
 .empty{
@@ -497,6 +635,35 @@ dialog.confirm::backdrop{background:rgba(5,8,15,.55);animation:fade-in .2s ease 
 dialog.confirm h3{font-size:16px;margin-bottom:8px}
 dialog.confirm p{font-size:13px;color:var(--muted);margin-bottom:18px}
 dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
+
+/* ============ 粘贴导入弹窗 ============
+   比 ConfirmDialog 宽得多（要放 textarea + 字段预览），故单独放宽上限。 */
+dialog.paste-dialog{max-width:520px;width:calc(100vw - 32px);padding:22px 24px}
+.pd-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pd-head h3{display:inline-flex;align-items:center;gap:7px;margin-bottom:0}
+.pd-head .icon-btn{color:var(--muted);padding:4px;border-radius:6px;display:inline-flex}
+.pd-head .icon-btn:hover{color:var(--text);background:var(--surface-2)}
+.pd-tip{font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.55}
+.pd-input{font-size:13px;line-height:1.6;resize:vertical;min-height:150px;margin-bottom:12px}
+.pd-failed{
+  font-size:12.5px;color:var(--warn);padding:10px 12px;margin-bottom:12px;
+  background:var(--surface-2);border:1px solid var(--warn);border-radius:9px;line-height:1.55;
+}
+.pd-preview{
+  padding:12px 14px;margin-bottom:14px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+}
+.pd-fields{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pd-chip{font-size:10.5px;letter-spacing:.04em;padding:3px 9px;border-radius:99px;border:1px solid}
+.pd-chip.ok{color:var(--good);border-color:color-mix(in srgb,var(--good) 55%,transparent)}
+.pd-chip.miss{color:var(--faint);border-color:var(--line)}
+/* 预览键值：标签定宽，值可换行 —— 表格感但不用 table */
+.pd-vals{display:flex;flex-direction:column;gap:7px}
+.pd-vals>div{display:grid;grid-template-columns:52px 1fr;gap:10px;font-size:12.5px;align-items:baseline}
+.pd-vals dt{color:var(--muted);font-size:11.5px;letter-spacing:.06em}
+.pd-vals dd{color:var(--text);min-width:0;overflow-wrap:anywhere}
+.pd-vals dd i{color:var(--faint);font-style:normal}
+.pd-hint{font-size:11.5px;color:var(--faint);margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
 
 /* ============ 登录 / 注册 ============ */
 .login-screen{
@@ -602,8 +769,10 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
   }
   .nav-primary a,.nav-more-btn{
     flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:3px;padding:8px 2px;font-size:10.5px;border-radius:0;
+    gap:3px;padding:8px 1px;font-size:9.5px;border-radius:0;
     color:var(--muted);min-width:0;
+    /* 加了「轨迹」后底栏是 6 个入口 + 更多 = 7 格，长标签（常旅客计划）必须能压缩 */
+    white-space:nowrap;overflow:hidden;text-overflow:clip;letter-spacing:-.02em;
   }
   .nav-primary a .ico,.nav-more-btn .ico{margin:0}
   .nav-primary a.active{background:transparent;color:var(--brass)}
@@ -665,6 +834,26 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
   .wrapped-card .big{font-size:clamp(48px,16vw,72px)}
   .headline{font-size:24px}
 
+  /* 页头按钮：全宽平分，避免两个按钮挤成一列 */
+  .head-actions{width:100%}
+  .head-actions .btn{flex:1;justify-content:center}
+
+  /* 倒计时卡：天数与酒店信息竖排，次要行程去掉城市列防挤压 */
+  .upcoming-main{grid-template-columns:1fr;gap:12px;padding:16px 16px}
+  .uc-count{flex-direction:row;align-items:baseline;gap:10px;min-width:0}
+  .uc-days{font-size:34px}
+  .upcoming-rest li{padding:9px 16px;gap:9px}
+  .upcoming-rest .c{display:none}
+
+  /* 热力图：卡片内边距收敛，横向滚动已由 .hm-scroll 保证 */
+  .heatmap-card{padding:14px 14px}
+  .hm-foot{flex-direction:column;align-items:flex-start;gap:8px}
+
+  /* 徽章网格：窄屏两列 */
+  .badge-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .badge{padding:13px 14px}
+  .bg-name{font-size:14px}
+
   /* 登录卡内边距收敛 */
   .login-screen{padding:20px}
   .login-card{padding:28px 22px}
@@ -677,4 +866,6 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
   .field-row{grid-template-columns:1fr}
   .stats-grid{gap:8px}
   .nav-primary a,.nav-more-btn{font-size:10px;padding:7px 1px}
+  /* 徽章降到一列，两列时名称会被截断 */
+  .badge-grid{grid-template-columns:1fr}
 }
