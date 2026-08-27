@@ -28,6 +28,9 @@
   --huazhu:#d97544;
   --other:#8a94a6;
   --shadow:0 10px 30px rgba(0,0,0,.45);
+  /* 布局：内容最大宽度 + 侧栏宽度，超宽屏断点放大（见 app.css @media min-width:1600/1920） */
+  --page-max:1180px;
+  --nav-w:216px;
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){

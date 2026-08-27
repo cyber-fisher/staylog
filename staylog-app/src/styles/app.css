@@ -34,7 +34,7 @@
 /* ============ 应用外壳与页面布局 ============ */
 .shell{display:flex;min-height:100vh}
 .sidenav{
-  width:216px;flex:0 0 216px;position:sticky;top:0;height:100vh;
+  width:var(--nav-w);flex:0 0 var(--nav-w);position:sticky;top:0;height:100vh;
   border-right:1px solid var(--line);padding:28px 18px;
   display:flex;flex-direction:column;gap:4px;
   /* 钱包封套：石墨黑叠极淡斜织纹，像皮质卡夹内衬 */
@@ -66,7 +66,7 @@
 }
 .theme-toggle:hover{background:var(--surface);color:var(--text)}
 
-.page{flex:1;min-width:0;padding:36px 44px 80px;max-width:1180px}
+.page{flex:1;min-width:0;padding:36px 44px 80px;max-width:var(--page-max,1180px);margin-inline:auto}
 .page-full{flex:1;min-width:0;display:flex;flex-direction:column}
 .page,.page-full{animation:page-enter .42s cubic-bezier(.2,.8,.2,1) both}
 .page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:26px}
@@ -555,6 +555,29 @@ dialog.confirm .row{display:flex;gap:10px;justify-content:flex-end}
 @keyframes progress-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes logo-arrive{from{opacity:0;transform:translateX(-8px);letter-spacing:.22em}to{opacity:1;transform:none;letter-spacing:.12em}}
 @keyframes login-enter{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+
+/* ============================================================
+   超宽屏放大（≥1600 / ≥1920）：内容已居中，此处按屏宽逐档放大
+   内容上限、侧栏、字号与间距，避免大屏上元素显小、右侧空旷。
+   仅在鼠标/大屏（非触屏）生效，手机端不受影响。
+   ============================================================ */
+@media (min-width:1600px){
+  :root{ --page-max:1360px; --nav-w:248px; }
+  .page{ padding:44px 52px 96px; }
+  .page-head h1{ font-size:29px; }
+  .stat{ padding:19px 22px; }
+  .stat .v{ font-size:29px; }
+  .logo .zh{ font-size:29px; }
+}
+@media (min-width:1920px){
+  :root{ --page-max:1520px; --nav-w:272px; }
+  .page{ padding:52px 60px 104px; }
+  .page-head h1{ font-size:32px; }
+  .stat{ padding:22px 26px; }
+  .stat .v{ font-size:32px; }
+  .stat .k{ font-size:11.5px; }
+  body{ font-size:15px; }
+}
 
 /* ============================================================
    移动端适配（≤768px）：侧栏 → 底部图标栏，所有页面拿到全宽
