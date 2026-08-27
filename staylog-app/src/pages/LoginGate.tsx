@@ -78,7 +78,7 @@ export default function LoginGate() {
         </form>
 
         <p className="login-note">
-          数据云端同步，可跨设备访问；离线时先存本地，联网后自动同步。首个注册的账号为管理员。
+          数据云端同步，可跨设备访问；离线时先存本地，联网后自动同步。
         </p>
       </div>
     </div>

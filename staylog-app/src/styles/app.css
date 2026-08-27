@@ -602,6 +602,8 @@ button.filter-chip:focus-visible{outline:2px solid var(--brass);outline-offset:2
 /* ============ 轨迹页：热力日历 ============
    7 行（周日→周六）× 53 列布局交给 grid-auto-flow:column，
    格子按日期顺序铺进去即可，不需要手算二维坐标。 */
+.journey-sec{margin-bottom:28px}
+.journey-sec:last-child{margin-bottom:0}
 .heatmap-card{padding:18px 20px}
 .hm-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
 .hm-head .t{font-size:12px;color:var(--muted);letter-spacing:.12em}
@@ -923,9 +925,26 @@ dialog.paste-dialog{max-width:520px;width:calc(100vw - 32px);padding:22px 24px}
   .upcoming-rest li{padding:9px 16px;gap:9px}
   .upcoming-rest .c{display:none}
 
-  /* 热力图：卡片内边距收敛，横向滚动已由 .hm-scroll 保证 */
+  /* 轨迹页分区标题：窄屏收敛字号与字距，EN 副标题过长时截断，避免与中文标题挤成两行错位 */
+  .journey-sec{margin-bottom:20px}
+  .sec-head{gap:10px;margin-bottom:14px}
+  .sec-head h2{font-size:17px}
+  .sec-head .en{font-size:9px;letter-spacing:.18em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1;min-width:0}
+
+  /* 热力图：卡片内边距收敛，横向滚动已由 .hm-scroll 保证；缩小单元格让窄屏一屏能看到更长跨度 */
   .heatmap-card{padding:14px 14px}
+  .hm-inner{min-width:0;width:max-content}
+  .hm-cell{width:11px;height:11px}
+  .hm-scroll{-webkit-overflow-scrolling:touch}
   .hm-foot{flex-direction:column;align-items:flex-start;gap:8px}
+  .hm-sum{font-size:12px}
+
+  /* 到期提醒：三段（集团/权益/天数）横排在窄屏会挤压，改为集团+权益一行、天数换行右对齐 */
+  .expiry-item{flex-wrap:wrap;gap:4px 10px;padding:10px 14px}
+  .expiry-item .days{width:100%;margin-left:0;text-align:right}
+
+  /* 常旅客表单：成对数字/日期输入在 768px 两列偏窄，直接单列更易点选 */
+  .drawer .field-row{grid-template-columns:1fr;gap:12px}
 
   /* 徽章网格：窄屏两列 */
   .badge-grid{grid-template-columns:repeat(2,1fr);gap:10px}

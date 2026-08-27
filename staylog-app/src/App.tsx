@@ -13,10 +13,25 @@ import {
   IconAward, IconBed, IconChart, IconDashboard, IconMap, IconMenu, IconMoon, IconRoute, IconSettings, IconSun, IconX,
 } from "./components/Icons";
 
-const MapPage = lazy(() => import("./pages/MapPage"));
-const Journey = lazy(() => import("./pages/Journey"));
-const Stats = lazy(() => import("./pages/Stats"));
-const Wrapped = lazy(() => import("./pages/Wrapped"));
+// 懒加载 + 预取：把 import 工厂抽出，既给 lazy 用，也能在鼠标悬停/空闲时提前拉取大 chunk，
+// 消除首次点击「足迹地图 / 统计分析」时下载 maplibre(≈1MB)/recharts(≈400KB) 造成的卡顿。
+const importMap = () => import("./pages/MapPage");
+const importJourney = () => import("./pages/Journey");
+const importStats = () => import("./pages/Stats");
+const importWrapped = () => import("./pages/Wrapped");
+
+const MapPage = lazy(importMap);
+const Journey = lazy(importJourney);
+const Stats = lazy(importStats);
+const Wrapped = lazy(importWrapped);
+
+// 已发起的预取只跑一次，避免悬停反复触发
+const prefetched = new Set<string>();
+function prefetch(key: string, factory: () => Promise<unknown>) {
+  if (prefetched.has(key)) return;
+  prefetched.add(key);
+  void factory();
+}
 
 type Theme = "system" | "light" | "dark";
 
@@ -49,6 +64,23 @@ export default function App() {
   useEffect(() => {
     init();
   }, [init]);
+
+  // 浏览器空闲时预取懒加载页面，首次点击不再等大 chunk 下载
+  useEffect(() => {
+    const ric =
+      (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback ||
+      ((cb: () => void) => window.setTimeout(cb, 1200));
+    const id = ric(() => {
+      prefetch("map", importMap);
+      prefetch("stats", importStats);
+      prefetch("journey", importJourney);
+    });
+    return () => {
+      const cic = (window as unknown as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback;
+      if (cic) cic(id as number);
+      else clearTimeout(id as number);
+    };
+  }, []);
 
   const [migrateAsk, setMigrateAsk] = useState<{ stays: number; memberships: number } | null>(null);
   // 移动端「更多」面板开关（次要项：主题/数据管理/用户/退出）
@@ -140,9 +172,9 @@ export default function App() {
             <NavLink to="/" end><span className="ico"><IconDashboard /></span>总览</NavLink>
             <NavLink to="/stays"><span className="ico"><IconBed /></span>住宿记录</NavLink>
             <NavLink to="/programs"><span className="ico"><IconAward /></span>常旅客计划</NavLink>
-            <NavLink to="/journey"><span className="ico"><IconRoute /></span>轨迹</NavLink>
-            <NavLink to="/map"><span className="ico"><IconMap /></span>足迹地图</NavLink>
-            <NavLink to="/stats"><span className="ico"><IconChart /></span>统计分析</NavLink>
+            <NavLink to="/journey" onMouseEnter={() => prefetch("journey", importJourney)}><span className="ico"><IconRoute /></span>轨迹</NavLink>
+            <NavLink to="/map" onMouseEnter={() => prefetch("map", importMap)}><span className="ico"><IconMap /></span>足迹地图</NavLink>
+            <NavLink to="/stats" onMouseEnter={() => prefetch("stats", importStats)}><span className="ico"><IconChart /></span>统计分析</NavLink>
             {/* 仅移动端底部栏显示的「更多」入口 */}
             <button type="button" className="nav-more-btn" onClick={() => setMoreOpen((v) => !v)} aria-label="更多">
               <span className="ico"><IconMenu /></span>更多

@@ -38,7 +38,7 @@ export default function Journey() {
         </div>
       </div>
 
-      <section style={{ marginBottom: 28 }}>
+      <section className="journey-sec">
         <div className="sec-head">
           <h2 className="serif">住宿日历</h2>
           <span className="en">NIGHTS CALENDAR</span>
@@ -47,7 +47,7 @@ export default function Journey() {
         <StayHeatmap stays={stays} year={year} onYearChange={setYear} />
       </section>
 
-      <section>
+      <section className="journey-sec">
         <div className="sec-head">
           <h2 className="serif">成就徽章</h2>
           <span className="en">ACHIEVEMENTS</span>

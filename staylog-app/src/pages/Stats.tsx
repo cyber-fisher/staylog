@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
 import {
@@ -58,6 +58,14 @@ export default function Stats() {
     const spend = rated.reduce((n, s) => n + (s.rate || 0) * nightsOf(s), 0);
     return Math.round((pts / spend) * 10) / 10;
   }, [stays]);
+
+  // 5 个 recharts 图表若一次性挂载，ResponsiveContainer 会同步做多次布局测量，首帧明显卡顿。
+  // 分两帧渲染：首帧只挂第一排图表，下一帧再挂其余，让页面先可见、交互不被长任务阻塞。
+  const [showRest, setShowRest] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setShowRest(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   if (stays.length === 0) {
     return (
@@ -121,6 +129,7 @@ export default function Stats() {
         </div>
       </div>
 
+      {showRest ? (
       <div className="charts-2col" style={{ marginBottom: 16 }}>
         <div className="card chart-card">
           <div className="t">历年支出与均价（CNY）</div>
@@ -151,6 +160,12 @@ export default function Stats() {
           </ResponsiveContainer>
         </div>
       </div>
+      ) : (
+        <div className="charts-2col" style={{ marginBottom: 16 }} aria-hidden>
+          <div className="card chart-card" style={{ height: 288 }} />
+          <div className="card chart-card" style={{ height: 288 }} />
+        </div>
+      )}
 
       <div className="charts-2col">
         <div className="card chart-card" style={{ paddingBottom: 18 }}>
