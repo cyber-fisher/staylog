@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Dashboard from "./pages/Dashboard";
 import Stays from "./pages/Stays";
 import Programs from "./pages/Programs";
@@ -193,6 +194,7 @@ export default function App() {
         onConfirm={confirmMigrate}
         onCancel={dismissMigrate}
       />
+      <SpeedInsights />
     </div>
   );
 }
