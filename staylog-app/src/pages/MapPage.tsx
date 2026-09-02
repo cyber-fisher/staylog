@@ -4,7 +4,7 @@ import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useStaylog } from "../store/staylog";
 import { aggregateCities, aggregateHotels, distanceKm, totalTravelKm, type HotelAgg } from "../lib/stats";
-import { wgs84ToGcj02 } from "../lib/amap";
+import { inChina, wgs84ToGcj02 } from "../lib/amap";
 import { geocodeCity } from "../lib/geocode";
 import { GROUP_META, type LoyaltyGroup } from "../types";
 import EmptyState from "../components/EmptyState";
@@ -12,8 +12,12 @@ import EmptyState from "../components/EmptyState";
 // 单一高德栅格底图（style=7 街道图，GCJ-02，中文地名，国内极快）。
 // 标记坐标统一 WGS-84 存库，显示时 wgs84ToGcj02 投到高德底图（境外为恒等变换）。
 const AMAP_TILES = [1, 2, 3, 4].map(
-  (n) => `https://webst0${n}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}`
+  (n) => `https://webrd0${n}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}`
 );
+
+// 中国核心视野（经度 108.5°E，纬度 33.5°N，完美居中东部与中西部各主要城市）
+const CHINA_CENTER: [number, number] = [108.5, 33.5];
+const CHINA_ZOOM = 4.5;
 
 // 集团配色（与 src/styles/tokens.css 的 --hilton 等保持同步）。
 const GROUP_HEX: Record<LoyaltyGroup, string> = {
@@ -27,9 +31,25 @@ function buildStyle(): maplibregl.StyleSpecification {
   return {
     version: 8,
     sources: {
-      amap: { type: "raster", tiles: AMAP_TILES, tileSize: 256, maxzoom: 18, attribution: "© 高德地图" },
+      amap: {
+        type: "raster",
+        tiles: AMAP_TILES,
+        tileSize: 256,
+        minzoom: 3,
+        maxzoom: 18,
+        attribution: "© 高德地图",
+      },
     },
-    layers: [{ id: "amap", type: "raster", source: "amap" }],
+    layers: [
+      {
+        id: "bg",
+        type: "background",
+        paint: {
+          "background-color": "#e8e5de", // 与高德陆地底色契合的淡暖灰底色，避免白屏
+        },
+      },
+      { id: "amap", type: "raster", source: "amap" },
+    ],
   };
 }
 
@@ -43,13 +63,21 @@ function isDomestic(country: string | undefined): boolean {
   return country.includes("中国") || country.includes("中华人民共和国");
 }
 
-// 水滴图钉的 SVG（尖端在底部中心 14,36，配 anchor:"bottom" 精准落点）。
-function pinSvg(color: string): string {
+// 现代化发光足迹微气泡标记 HTML
+function markerHtml(h: HotelAgg, color: string): string {
+  const nightText = h.nights > 1 ? `${h.nights}晚` : h.visits > 1 ? `${h.visits}次` : "";
   return (
-    `<svg class="map-pin-svg" width="30" height="38" viewBox="0 0 28 36" aria-hidden="true">` +
-    `<path d="M14 0C6.27 0 0 6.27 0 14c0 9.6 14 22 14 22s14-12.4 14-22C28 6.27 21.73 0 14 0z" fill="${color}" stroke="#fff" stroke-width="1.6"/>` +
-    `<circle cx="14" cy="14" r="5.4" fill="#fff"/>` +
-    `</svg>`
+    `<div class="map-footprint-marker" style="--marker-color:${color}">` +
+      `<div class="mfm-glow"></div>` +
+      `<div class="mfm-core ${nightText ? "has-text" : "is-dot"}">` +
+        `<span class="mfm-dot"></span>` +
+        (nightText ? `<span class="mfm-label mono">${nightText}</span>` : "") +
+      `</div>` +
+      `<div class="mfm-hover-card">` +
+        `<span class="mhc-name">${escapeHtml(h.hotelName)}</span>` +
+        `<span class="mhc-meta">${escapeHtml(h.city)} · ${h.nights}晚</span>` +
+      `</div>` +
+    `</div>`
   );
 }
 
@@ -112,7 +140,7 @@ export default function MapPage() {
     return wgs84ToGcj02(lng, lat);
   }
 
-  // 点图钉 → 弹卡片（复用现有 popup 样式 + 容器事件委托跳转）
+  // 点标记 → 弹卡片（复用现有 popup 样式 + 容器事件委托跳转）
   function openHotelPopup(map: maplibregl.Map, h: HotelAgg) {
     const meta = GROUP_META[h.group as LoyaltyGroup] || GROUP_META.other;
     const rating = h.avgRating != null ? ` · ★ ${h.avgRating}` : "";
@@ -123,13 +151,13 @@ export default function MapPage() {
       `<span class="sub">${escapeHtml(h.city)} · 住过 ${h.visits} 次 · 共 ${h.nights} 晚${rating}</span></div>` +
       `<button class="map-popup-cta" data-hotel="${escapeHtml(h.hotelName)}">查看入住记录 →</button>` +
       `</div>`;
-    new maplibregl.Popup({ offset: 34, closeButton: true })
+    new maplibregl.Popup({ offset: 16, closeButton: true })
       .setLngLat(project(h.lng!, h.lat!))
       .setHTML(html)
       .addTo(map);
   }
 
-  // 用 HTML 自定义图钉重建全部标记（DOM 标记不依赖 style 就绪，天然规避加载时序竞态）。
+  // 用现代化发光足迹微气泡重建全部标记
   function syncMarkers() {
     const map = mapRef.current;
     if (!map) return;
@@ -138,14 +166,12 @@ export default function MapPage() {
     for (const h of hotelsRef.current) {
       const color = GROUP_HEX[h.group as LoyaltyGroup] ?? BRASS;
       const el = document.createElement("div");
-      el.className = "map-pin";
-      el.title = h.hotelName;
-      el.innerHTML = pinSvg(color) + (h.visits > 1 ? `<span class="map-pin-badge">${h.visits}</span>` : "");
+      el.innerHTML = markerHtml(h, color);
       el.addEventListener("click", (ev) => {
         ev.stopPropagation();
         openHotelPopup(map, h);
       });
-      const marker = new maplibregl.Marker({ element: el, anchor: "bottom" })
+      const marker = new maplibregl.Marker({ element: el.firstElementChild as HTMLElement, anchor: "center" })
         .setLngLat(project(h.lng!, h.lat!))
         .addTo(map);
       markersRef.current.push(marker);
@@ -157,8 +183,10 @@ export default function MapPage() {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: buildStyle(),
-      center: [105, 35],
-      zoom: 3.6,
+      center: CHINA_CENTER,
+      zoom: CHINA_ZOOM,
+      minZoom: 3.5,
+      maxZoom: 18,
       attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
@@ -234,19 +262,25 @@ export default function MapPage() {
     mapRef.current?.flyTo({ center: project(lng, lat), zoom: 10, duration: 1600 });
   }
 
-  // 把视野框到全部已定位酒店（含海外）；无点则回落到全国视图。duration=0 用于初始化。
+  // 默认自适应国内足迹范围；无国内点时聚焦中国全境中心
   function fitToHotels(duration: number) {
     const map = mapRef.current;
     if (!map) return;
-    const h = hotelsRef.current;
-    if (h.length > 1) {
+    // 优先框出中国境内所有足迹点，避免被个别海外点（如迪拜、纽约）把全景强行拉到荒漠/中亚
+    const domestic = hotelsRef.current.filter((h) => inChina(h.lng!, h.lat!));
+    if (domestic.length > 1) {
       const bounds = new maplibregl.LngLatBounds();
-      h.forEach((x) => bounds.extend(project(x.lng!, x.lat!)));
-      map.fitBounds(bounds, { padding: 80, maxZoom: 10, duration });
-    } else if (h.length === 1) {
-      map.jumpTo({ center: project(h[0].lng!, h[0].lat!), zoom: 11 });
+      domestic.forEach((x) => bounds.extend(project(x.lng!, x.lat!)));
+      map.fitBounds(bounds, { padding: 60, minZoom: 4, maxZoom: 8, duration });
+    } else if (domestic.length === 1) {
+      map.flyTo({ center: project(domestic[0].lng!, domestic[0].lat!), zoom: 9, duration });
+    } else if (hotelsRef.current.length > 0) {
+      // 纯海外用户：框出全部点
+      const bounds = new maplibregl.LngLatBounds();
+      hotelsRef.current.forEach((x) => bounds.extend(project(x.lng!, x.lat!)));
+      map.fitBounds(bounds, { padding: 60, minZoom: 2, maxZoom: 8, duration });
     } else {
-      map.flyTo({ center: [105, 35], zoom: 3.6, duration });
+      map.flyTo({ center: CHINA_CENTER, zoom: CHINA_ZOOM, duration });
     }
   }
 
@@ -312,7 +346,7 @@ export default function MapPage() {
                 {(["hilton", "huazhu", "other"] as LoyaltyGroup[]).map((g) => (
                   <span key={g}><i style={{ background: GROUP_HEX[g] }} />{GROUP_META[g].short}</span>
                 ))}
-                <span className="map-legend-note">图钉右上角数字＝入住次数</span>
+                <span className="map-legend-note">微气泡标签＝入住晚数</span>
               </div>
             )}
           </div>

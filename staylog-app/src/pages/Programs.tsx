@@ -37,8 +37,8 @@ export default function Programs() {
   const [editing, setEditing] = useState<Membership | null>(null);
   const [form, setForm] = useState<Membership>(blankMembership());
   const [deleting, setDeleting] = useState<Membership | null>(null);
-  // 卡包手风琴：单开，默认展开第一张
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // 卡包激活态：null 表示总览层叠态，string 表示当前抽出聚焦的卡片
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const expiries = useMemo<ExpiryEntry[]>(() => {
     const now = dayjs();
@@ -69,20 +69,38 @@ export default function Programs() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  const activeMembership = useMemo(() => {
+    if (!activeId) return null;
+    return memberships.find((m) => m.id === activeId) ?? null;
+  }, [activeId, memberships]);
+
+  const otherMemberships = useMemo(() => {
+    if (!activeId) return [];
+    return memberships.filter((m) => m.id !== activeId);
+  }, [activeId, memberships]);
+
   return (
     <main className="page">
       <div className="page-head">
         <div>
           <h1 className="serif">常旅客计划</h1>
-          <div className="sub">定级进度由住宿记录自动累计，赠晚可手动补偿</div>
+          <div className="sub">
+            {activeMembership ? (
+              <span className="aw-active-hint">正在查看 {activeMembership.group === "other" ? activeMembership.customName || "会籍" : GROUP_META[activeMembership.group]?.name} · 点击完成收起</span>
+            ) : (
+              "定级进度由住宿记录自动累计，赠晚可手动补偿"
+            )}
+          </div>
         </div>
-        <button className="btn btn-primary" onClick={openNew}>
-          <IconPlus width={14} height={14} /> 添加计划
-        </button>
+        <div className="head-actions">
+          <button className="btn btn-primary" onClick={openNew}>
+            <IconPlus width={14} height={14} /> 添加计划
+          </button>
+        </div>
       </div>
 
-      {expiries.length > 0 && (
-        <section style={{ marginBottom: 30 }}>
+      {expiries.length > 0 && !activeMembership && (
+        <section style={{ marginBottom: 26 }}>
           <div className="sec-head">
             <h2 className="serif">到期提醒</h2>
             <span className="en">EXPIRING</span>
@@ -112,17 +130,84 @@ export default function Programs() {
             </button>
           </div>
         </div>
+      ) : activeMembership ? (
+        /* ===== 单卡聚焦抽发展开态 ===== */
+        <div className="apple-wallet-focus-view">
+          <div className="aw-focus-top-bar">
+            <button className="aw-back-btn" onClick={() => setActiveId(null)}>
+              ‹ 全部卡包 ({memberships.length})
+            </button>
+            <button className="btn-done" onClick={() => setActiveId(null)}>
+              完成
+            </button>
+          </div>
+
+          <WalletCard
+            key={activeMembership.id}
+            membership={activeMembership}
+            stays={stays}
+            isActive={true}
+            isStacked={false}
+            onEdit={openEdit}
+            onDelete={(x) => {
+              setActiveId(null);
+              setDeleting(x);
+            }}
+          />
+
+          {otherMemberships.length > 0 && (
+            <div className="aw-other-passes-section">
+              <div className="aw-other-head">
+                <span>其他会籍卡片</span>
+                <span className="aw-other-sub">点击可快速切换</span>
+              </div>
+              <div className="aw-mini-stack">
+                {otherMemberships.map((m, idx) => (
+                  <WalletCard
+                    key={m.id}
+                    membership={m}
+                    stays={stays}
+                    isActive={false}
+                    isStacked={true}
+                    stackIndex={idx}
+                    totalStacked={otherMemberships.length}
+                    onSelect={() => setActiveId(m.id)}
+                    onEdit={openEdit}
+                    onDelete={(x) => setDeleting(x)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
-        <div className="wallet-stack">
-          {memberships.map((m) => {
-            const effectiveExpanded = expandedId ?? memberships[0]?.id;
-            return (
-              <WalletCard key={m.id} membership={m} stays={stays}
-                expanded={effectiveExpanded === m.id}
-                onToggle={() => setExpandedId((cur) => ((cur ?? memberships[0]?.id) === m.id ? "" : m.id))}
-                onEdit={openEdit} onDelete={(x) => setDeleting(x)} />
-            );
-          })}
+        /* ===== Apple Wallet 拟物层叠卡包总览态 ===== */
+        <div className="apple-wallet-container">
+          <div className="aw-stack-hint">
+            <span>点击卡片抽出查看定级与权益</span>
+            <span className="mono">{memberships.length} 张卡片</span>
+          </div>
+          <div
+            className="apple-wallet-stack"
+            style={{
+              ["--card-count" as string]: memberships.length,
+            }}
+          >
+            {memberships.map((m, idx) => (
+              <WalletCard
+                key={m.id}
+                membership={m}
+                stays={stays}
+                isActive={false}
+                isStacked={true}
+                stackIndex={idx}
+                totalStacked={memberships.length}
+                onSelect={() => setActiveId(m.id)}
+                onEdit={openEdit}
+                onDelete={(x) => setDeleting(x)}
+              />
+            ))}
+          </div>
         </div>
       )}
 

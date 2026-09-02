@@ -171,189 +171,678 @@ button.filter-chip:focus-visible{outline:2px solid var(--brass);outline-offset:2
 /* 页头多按钮：主操作 + 次要操作并排 */
 .head-actions{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
 
-/* ============ 会籍卡包（房卡质感·叠放·点击展开）============ */
-.wallet-stack{display:flex;flex-direction:column;padding-top:6px}
-.wallet-card{
-  position:relative;border-radius:var(--radius-card);overflow:hidden;
-  /* 卡面：集团宝石色向石墨黑压暗的斜向渐变，像哑光 PVC 房卡 */
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.02) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, color-mix(in srgb,var(--tint) 42%,#0c0e12) 0%,
-                    color-mix(in srgb,var(--tint) 14%,#0c0e12) 46%, #0c0e12 100%);
-  border:1px solid color-mix(in srgb,var(--tint) 40%,var(--line));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 -6px 20px rgba(0,0,0,.30);
-  margin-top:-64px;transition:margin .32s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease,transform .24s ease;
-  animation:card-enter .4s cubic-bezier(.2,.8,.2,1) both;
-}
-.wallet-card:first-child{margin-top:0}
-.wallet-card.expanded{margin-top:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.1), 0 14px 34px rgba(0,0,0,.45);transform:translateY(-2px)}
-.wallet-card.expanded:first-child{margin-top:0}
-.wallet-card.expanded + .wallet-card{margin-top:12px}
-
-/* ---- 华住等级卡面（按官方卡样式配色复刻，非原图）---- */
-/* 星会员：薰衣草紫 */
-.wallet-card.skin-hz-star{
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #c3b2e8 0%, #b39ede 55%, #a98fd6 100%);
-  border-color:#9f8bd0;
-}
-/* 银会员：冷银金属 */
-.wallet-card.skin-hz-silver{
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #dfe3ec 0%, #ccd2e0 55%, #c2c8d8 100%);
-  border-color:#b7bece;
-}
-/* 金会员：香槟金 */
-.wallet-card.skin-hz-gold{
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #f4dca2 0%, #ecc880 52%, #e3b866 100%);
-  border-color:#d9ab5a;
-}
-/* 铂金会员：深藏青（深卡，沿用浅文字） */
-.wallet-card.skin-hz-plat{
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #454f66 0%, #363f54 50%, #2a3145 100%);
-  border-color:#4a5673;
+/* ============ Apple Wallet 风格会籍卡包 ============ */
+.apple-wallet-container {
+  width: 100%;
+  max-width: 580px;
+  margin: 0 auto;
+  position: relative;
 }
 
-/* ---- 希尔顿等级卡面（按通用等级色重绘）：会员=默认蓝深卡 ---- */
-/* 银卡：冷银（浅卡） */
-.wallet-card.skin-hh-silver{
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #e2e6ee 0%, #cfd5e2 55%, #c4cbda 100%);
-  border-color:#b8bfd0;
-}
-/* 金卡：香槟金（浅卡） */
-.wallet-card.skin-hh-gold{
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #f3d99e 0%, #e9c47c 52%, #dfb460 100%);
-  border-color:#d4a655;
-}
-/* 钻石：石墨灰（深卡，浅文字） */
-.wallet-card.skin-hh-diamond{
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #4a4e57 0%, #3a3e47 50%, #2c2f37 100%);
-  border-color:#555a66;
-}
-/* 曜钻：近黑 + 微光（顶级深卡，浅文字） */
-.wallet-card.skin-hh-diamondplus{
-  background:
-    radial-gradient(120% 90% at 78% 30%, rgba(120,150,210,.14) 0%, transparent 55%),
-    repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 2px, transparent 2px 4px),
-    linear-gradient(150deg, #23262e 0%, #171a20 55%, #0f1116 100%);
-  border-color:#3a4152;
+.aw-stack-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  padding: 0 4px;
 }
 
-/* 浅卡面（星/银/金）：文字/点缀翻为深色，保证对比度 */
-.wallet-card.is-light .wc-name{background:none;-webkit-text-fill-color:#2a2536;color:#2a2536}
-.wallet-card.is-light .wc-en{color:rgba(42,37,54,.55)}
-.wallet-card.is-light .wc-tier{background:rgba(255,255,255,.35);color:#2a2536;border-color:rgba(42,37,54,.35)}
-.wallet-card.is-light .wc-summary{color:rgba(42,37,54,.7)}
-.wallet-card.is-light .wc-summary b{color:#241f30}
-.wallet-card.is-light .wc-magstripe{
-  background:linear-gradient(180deg, rgba(0,0,0,.06) 0 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,.35), rgba(0,0,0,.5) 50%, rgba(0,0,0,.35));
+/* 层叠卡包容器：动态高度确保下方内容不被截断 */
+.apple-wallet-stack {
+  position: relative;
+  width: 100%;
+  min-height: calc(210px + (var(--card-count, 1) - 1) * 66px);
+  padding-bottom: 30px;
 }
-.wallet-card.is-light .wc-track .cap{color:rgba(42,37,54,.6)}
-.wallet-card.is-light .wc-track .cap b{color:#241f30}
-.wallet-card.is-light .wc-track .rail{background:rgba(0,0,0,.14)}
-.wallet-card.is-light .wc-note{color:rgba(42,37,54,.5)}
-.wallet-card.is-light .wc-facts{color:rgba(42,37,54,.65)}
-.wallet-card.is-light .wc-facts b{color:#241f30}
-.wallet-card.is-light .wc-cert{color:rgba(42,37,54,.85)}
-.wallet-card.is-light .wc-cert em{color:rgba(42,37,54,.5)}
-.wallet-card.is-light .wc-actions button{background:rgba(0,0,0,.08);color:rgba(42,37,54,.7)}
-.wallet-card.is-light .wc-actions button:hover{color:#241f30}
-/* 浅卡上的 logo 芯片：改哑光深色，避免金箔在浅底上发糊 */
-.wallet-card.is-light .wc-logo{background:linear-gradient(135deg,#3a3346,#2a2536);color:#e8e2f0;box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
 
-/* 磁条：卡片头部下方横贯，房卡的标志物 */
-.wc-magstripe{
-  height:26px;width:100%;
+/* 卡片容器：堆叠态与单卡态 */
+.apple-wallet-card-wrapper.in-stack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(calc(var(--stack-idx, 0) * 66px));
+  z-index: calc(var(--stack-idx, 0) + 1);
+  transition: transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.28s ease, z-index 0s;
+  will-change: transform;
+}
+
+.apple-wallet-card-wrapper.in-stack:hover {
+  transform: translateY(calc(var(--stack-idx, 0) * 66px - 14px));
+  z-index: 40;
+}
+
+.apple-wallet-card-wrapper.in-stack:hover .apple-pass-card {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.55), 0 0 1px 1px rgba(255, 255, 255, 0.18) inset;
+}
+
+.apple-wallet-card-wrapper.standalone {
+  width: 100%;
+  max-width: 580px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ============ Apple Wallet 卡片面 (Pass Face) ============ */
+.apple-pass-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 208px;
+  padding: 18px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.06) 0 1px, transparent 1px),
-    linear-gradient(90deg, #0a0b0e, #1a1c22 50%, #0a0b0e);
-  border-top:1px solid rgba(255,255,255,.06);
-  border-bottom:1px solid rgba(0,0,0,.45);
+    repeating-linear-gradient(45deg, rgba(255,255,255,.015) 0 2px, transparent 2px 4px),
+    linear-gradient(145deg, color-mix(in srgb,var(--tint) 48%,#0b0d11) 0%,
+                    color-mix(in srgb,var(--tint) 16%,#0b0d11) 48%, #07080b 100%);
+  border: 1px solid color-mix(in srgb,var(--tint) 45%, rgba(255,255,255,.16));
+  box-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.45), 0 0 1px 1px rgba(255, 255, 255, 0.1) inset;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
 }
 
-.wc-head{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;
-  padding:16px 20px 14px;text-align:left;
+.apple-pass-card:active {
+  transform: scale(0.985);
 }
-.wc-brand{display:flex;align-items:center;gap:12px;min-width:0}
-/* logo 芯片：金箔浮雕小方块，像房卡上的 IC 触点 */
-.wc-logo{
-  width:34px;height:26px;border-radius:5px;flex:0 0 auto;
-  display:flex;align-items:center;justify-content:center;color:#241c08;
-  background:var(--gold-foil);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -1px 2px rgba(0,0,0,.3);
-}
-.wc-names{display:flex;flex-direction:column;min-width:0}
-/* 集团名：烫金压印 */
-.wc-name{font-size:15.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  color:var(--gold);background:var(--gold-foil);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-@supports not ((-webkit-background-clip:text) or (background-clip:text)){.wc-name{-webkit-text-fill-color:currentColor}}
-.wc-en{font-size:10px;letter-spacing:.22em;color:color-mix(in srgb,var(--text) 55%,transparent)}
-/* 等级：烫金描边 pill */
-.wc-tier{
-  font-size:11px;letter-spacing:.14em;padding:5px 12px;border-radius:99px;white-space:nowrap;flex:0 0 auto;
-  background:rgba(0,0,0,.25);
-  color:var(--gold);
-  border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);
-}
-.wc-logo svg{transition:transform .32s cubic-bezier(.2,.8,.2,1)}
-.wallet-card.expanded .wc-logo svg{transform:rotate(-8deg) scale(1.12)}
-/* 摘要行：钢印数字，卡号质感。卡面恒为深色 → 用固定浅色，不随 app 主题翻转（浅卡由 .is-light 覆盖） */
-.wc-summary{display:flex;gap:22px;padding:0 20px 16px;font-size:12.5px;color:rgba(236,232,224,.62)}
-.wc-summary b{color:#f3efe7;font-weight:600;font-family:ui-monospace,"SF Mono","Menlo",monospace;font-variant-numeric:tabular-nums;letter-spacing:.06em}
 
-/* 展开体：收起时高度归零。卡面恒为深色（真房卡质感），故内部文字用固定浅色，不随主题反转 */
-.wc-body{
-  max-height:0;opacity:0;overflow:hidden;
-  transition:max-height .3s ease,opacity .25s ease,padding .3s ease;
-  padding:0 20px;
+/* 卡面高光与微光质感 */
+.aw-specular {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 85% 15%, rgba(255,255,255,0.18) 0%, transparent 55%),
+              linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 45%);
 }
-.wallet-card.expanded .wc-body{max-height:440px;opacity:1;padding:0 20px 18px}
-.wc-track .cap{display:flex;justify-content:space-between;font-size:11.5px;color:rgba(236,232,224,.6);margin-bottom:6px}
-.wc-track .cap b{color:#ece8e0;font-weight:500;font-family:ui-monospace,"SF Mono","Menlo",monospace;letter-spacing:.05em}
-.wc-track .rail{position:relative;height:6px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden}
-.wc-track .rail i{display:block;height:100%;border-radius:99px;background:var(--gold-foil)}
-.wallet-card.expanded .wc-track .rail i{animation:progress-grow .55s .08s cubic-bezier(.2,.8,.2,1) both;transform-origin:left}
-/* 已订未住段：紧接已住段之后。斜纹半透明金 —— 与实心已住段一眼可分，
-   又不抢主进度的视觉重量。绝对定位，left 由 JS 传入的已住百分比给出。 */
-.wc-track .rail i.projected{
-  position:absolute;top:0;background:none;
-  background-image:repeating-linear-gradient(45deg,
-    rgba(244,215,138,.62) 0 3px, transparent 3px 6px);
-  border-radius:0 99px 99px 0;
+
+.aw-watermark {
+  position: absolute;
+  right: -8px;
+  bottom: 24px;
+  font-size: 58px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  opacity: 0.045;
+  pointer-events: none;
+  white-space: nowrap;
 }
-.wc-note.projected-note{color:rgba(236,232,224,.58)}
-.wc-note.projected-note b{color:#f4d78a;font-weight:500}
-/* 浅卡（华住星/银/金、希尔顿银/金）上金色斜纹会糊掉 → 换深色斜纹 */
-.wallet-card.is-light .wc-track .rail i.projected{
-  background-image:repeating-linear-gradient(45deg,
-    rgba(42,37,54,.45) 0 3px, transparent 3px 6px);
+
+/* 卡头：品牌与等级 */
+.aw-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 2;
 }
-.wallet-card.is-light .wc-note.projected-note{color:rgba(42,37,54,.6)}
-.wallet-card.is-light .wc-note.projected-note b{color:#241f30}
-.wc-note{font-size:11px;color:rgba(236,232,224,.42);margin-top:7px}
-.wc-facts{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:rgba(236,232,224,.6);margin-top:12px}
-.wc-facts b{color:#ece8e0;font-family:ui-monospace,"SF Mono","Menlo",monospace;letter-spacing:.04em}
-.wc-certs{display:flex;flex-direction:column;gap:5px;margin-top:12px}
-.wc-cert{font-size:12px;color:rgba(236,232,224,.85)}
-.wc-cert em{color:rgba(236,232,224,.42);font-style:normal;font-size:11px}
-.wc-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-.wc-actions button{font-size:12px;color:rgba(236,232,224,.65);padding:6px 12px;border-radius:7px;background:rgba(0,0,0,.25);display:inline-flex;align-items:center;gap:5px}
-.wc-actions button:hover{color:var(--gold)}
-.wc-actions button.del:hover{color:#e0655f}
+
+.aw-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.aw-logo-chip {
+  width: 32px;
+  height: 24px;
+  border-radius: 5px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #241c08;
+  background: var(--gold-foil);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 5px rgba(0,0,0,.3);
+}
+
+.aw-brand-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.aw-brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.aw-brand-en {
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  color: rgba(255,255,255,0.6);
+  font-weight: 500;
+}
+
+.aw-tier-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  padding: 4px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(8px);
+  color: var(--gold);
+  border: 1px solid color-mix(in srgb,var(--gold) 50%, rgba(255,255,255,.2));
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+/* 卡片中部：金属芯片 + 无线感应标 与 积分主视觉 */
+.aw-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+  margin: auto 0;
+}
+
+.aw-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aw-emv-chip {
+  display: flex;
+  align-items: center;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+}
+
+.aw-contactless {
+  color: rgba(255,255,255,0.45);
+  display: flex;
+  align-items: center;
+}
+
+.aw-balance-group {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.aw-balance-label {
+  font-size: 9px;
+  letter-spacing: .16em;
+  color: rgba(255,255,255,0.55);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.aw-balance-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: .02em;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.aw-magstripe {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 20%, rgba(255,255,255,0.12) 80%, transparent);
+  margin: 3px 0 6px;
+}
+
+/* 卡片底部：卡号与速览 */
+.aw-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 2;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.7);
+}
+
+.aw-member-no {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aw-member-no .aw-label {
+  font-size: 8.5px;
+  letter-spacing: .14em;
+  opacity: 0.6;
+  font-weight: 700;
+}
+
+.aw-quick-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aw-quick-stats b {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.aw-rem {
+  background: rgba(0,0,0,0.3);
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 10.5px;
+}
+
+/* ---- 集团等级专属卡面皮肤 ---- */
+.apple-pass-card.skin-hz-star {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #c5b4e8 0%, #b39ede 55%, #a88ed4 100%);
+  border-color: #9f8bd0;
+}
+.apple-pass-card.skin-hz-silver {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #e3e7f0 0%, #cbd1de 55%, #c0c6d6 100%);
+  border-color: #b7bece;
+}
+.apple-pass-card.skin-hz-gold {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #f5dfa7 0%, #ecc880 52%, #e2b763 100%);
+  border-color: #d9ab5a;
+}
+.apple-pass-card.skin-hz-plat {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #444e66 0%, #353e54 50%, #272e42 100%);
+  border-color: #4a5673;
+}
+.apple-pass-card.skin-hh-silver {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #e5e9f2 0%, #cfd5e2 55%, #c2c9d8 100%);
+  border-color: #b8bfd0;
+}
+.apple-pass-card.skin-hh-gold {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #f5dca2 0%, #e9c47c 52%, #deb25c 100%);
+  border-color: #d4a655;
+}
+.apple-pass-card.skin-hh-diamond {
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #484c55 0%, #373b44 50%, #282b32 100%);
+  border-color: #555a66;
+}
+.apple-pass-card.skin-hh-diamondplus {
+  background: radial-gradient(120% 90% at 78% 30%, rgba(120,150,210,.18) 0%, transparent 55%),
+              repeating-linear-gradient(45deg, rgba(255,255,255,.025) 0 2px, transparent 2px 4px),
+              linear-gradient(145deg, #22252d 0%, #15181e 55%, #0c0e12 100%);
+  border-color: #3a4152;
+}
+
+/* 浅色卡面 (is-light)：字体与图标反显深色 */
+.apple-pass-card.is-light .aw-brand-name { color: #221d2b; text-shadow: none; }
+.apple-pass-card.is-light .aw-brand-en { color: rgba(34,29,43,0.6); }
+.apple-pass-card.is-light .aw-tier-pill {
+  background: rgba(255,255,255,0.5);
+  color: #241c08;
+  border-color: rgba(34,29,43,0.25);
+}
+.apple-pass-card.is-light .aw-logo-chip {
+  background: linear-gradient(135deg,#3a3346,#2a2536);
+  color: #e8e2f0;
+}
+.apple-pass-card.is-light .aw-contactless { color: rgba(34,29,43,0.45); }
+.apple-pass-card.is-light .aw-balance-label { color: rgba(34,29,43,0.65); }
+.apple-pass-card.is-light .aw-balance-val { color: #1c1824; text-shadow: none; }
+.apple-pass-card.is-light .aw-watermark { color: #1c1824; opacity: 0.05; }
+.apple-pass-card.is-light .aw-magstripe {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.12) 20%, rgba(0,0,0,0.12) 80%, transparent);
+}
+.apple-pass-card.is-light .aw-foot { color: rgba(34,29,43,0.7); }
+.apple-pass-card.is-light .aw-quick-stats b { color: #1c1824; }
+.apple-pass-card.is-light .aw-rem {
+  background: rgba(255,255,255,0.5);
+  border-color: rgba(34,29,43,0.2);
+}
+
+/* ============ 聚焦抽发展开视图与 Apple Pass Sheet ============ */
+.apple-wallet-focus-view {
+  width: 100%;
+  max-width: 580px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.aw-focus-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.aw-back-btn {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.aw-back-btn:hover {
+  opacity: 0.8;
+}
+
+.btn-done {
+  background: var(--text);
+  color: var(--ink);
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 5px 16px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.btn-done:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.aw-active-hint {
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* Apple Pass 详情卡片 (Inset Grouped) */
+.apple-pass-sheet {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px;
+  margin-top: 18px;
+  box-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: card-enter 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* 1. 定级进度卡 */
+.aw-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aw-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.aw-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.aw-section-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.aw-progress-rail {
+  position: relative;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.aw-progress-rail i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--gold-foil);
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.aw-progress-rail i.projected {
+  position: absolute;
+  top: 0;
+  background: none;
+  background-image: repeating-linear-gradient(45deg,
+    rgba(244,215,138,.65) 0 3px, transparent 3px 6px);
+  border-radius: 0 99px 99px 0;
+}
+
+.aw-progress-note {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+  gap: 4px;
+}
+
+.aw-status-ok {
+  color: #4ade80;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.aw-projected-callout {
+  background: rgba(244, 215, 138, 0.08);
+  border: 1px dashed rgba(244, 215, 138, 0.4);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.aw-projected-callout b {
+  color: var(--gold);
+}
+
+/* 2. 核心信息网格 */
+.aw-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.aw-grid-tile {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aw-grid-tile .lbl {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.aw-grid-tile .val {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.aw-grid-tile .val em {
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+/* 3. 专属卡券包 (Apple Ticket 拟物票券) */
+.aw-vouchers-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aw-vouchers-title {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+.aw-vouchers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aw-voucher-ticket {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.aw-vt-stub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 12px;
+  border-right: 1px dashed var(--line);
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.aw-vt-body {
+  padding-left: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.aw-vt-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aw-vt-date {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.aw-voucher-ticket.expiring {
+  border-color: var(--warn);
+  background: rgba(230, 160, 40, 0.08);
+}
+
+.aw-voucher-ticket.expiring .aw-vt-date {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.aw-voucher-ticket.expired {
+  opacity: 0.55;
+}
+
+/* 4. 底部操作按钮 */
+.aw-actions-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.aw-btn-action {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.aw-btn-action:hover {
+  background: var(--surface-hover);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.aw-btn-action.danger:hover {
+  border-color: #e0655f;
+  color: #e0655f;
+}
+
+/* ===== 单卡展开态下的其他卡片 mini-stack ===== */
+.aw-other-passes-section {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aw-other-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+.aw-other-sub {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.aw-mini-stack {
+  position: relative;
+  width: 100%;
+  min-height: calc(210px + (var(--card-count, 2) - 1) * 60px);
+}
 
 /* ============ 到期提醒 ============ */
 .expiry-list{display:flex;flex-direction:column;gap:8px}
@@ -519,22 +1008,137 @@ button.filter-chip:focus-visible{outline:2px solid var(--brass);outline-offset:2
 }
 .map-geocoding b{color:var(--brass);font-weight:600;margin:0 2px}
 
-/* HTML 自定义水滴图钉（maplibregl.Marker，尖端 anchor:bottom 精准落点） */
-.map-pin{
-  position:relative;width:30px;height:38px;cursor:pointer;
-  filter:drop-shadow(0 4px 6px rgba(0,0,0,.35));
-  transition:transform .18s cubic-bezier(.2,.8,.2,1),filter .18s ease;
-  transform-origin:50% 100%;
+/* ============ 现代化发光足迹微气泡标记 (Flighty / Apple Style) ============ */
+.map-footprint-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  z-index: 1;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.map-pin:hover{transform:scale(1.18) translateY(-2px);filter:drop-shadow(0 8px 12px rgba(0,0,0,.45));z-index:2}
-.map-pin-svg{display:block}
-/* 多次入住的次数徽章，贴在图钉右上 */
-.map-pin-badge{
-  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;line-height:1;color:var(--ink);
-  background:var(--brass);border:1.5px solid #fff;border-radius:99px;
-  box-shadow:0 1px 3px rgba(0,0,0,.3);
+
+.map-footprint-marker:hover {
+  transform: scale(1.16);
+  z-index: 120;
+}
+
+/* 呼吸微光波纹 */
+.mfm-glow {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--marker-color) 40%, transparent);
+  pointer-events: none;
+  animation: mfm-pulse 3s infinite ease-out;
+}
+
+@keyframes mfm-pulse {
+  0% { transform: scale(0.5); opacity: 0.85; }
+  65% { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* 核心微气泡指示器 */
+.mfm-core {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: color-mix(in srgb, var(--surface) 90%, #000);
+  border: 1.5px solid var(--marker-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.map-footprint-marker:hover .mfm-core {
+  border-color: #ffffff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.mfm-core.is-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  padding: 0;
+  justify-content: center;
+}
+
+.mfm-core.has-text {
+  padding: 3px 8px 3px 6px;
+  border-radius: 99px;
+  height: 22px;
+}
+
+.mfm-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--marker-color);
+  box-shadow: 0 0 6px var(--marker-color);
+  flex-shrink: 0;
+}
+
+.mfm-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+/* 悬停微卡片 */
+.mfm-hover-card {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 150;
+}
+
+.mfm-hover-card::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: var(--surface) transparent transparent transparent;
+}
+
+.map-footprint-marker:hover .mfm-hover-card {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.mhc-name {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mhc-meta {
+  font-size: 10.5px;
+  color: var(--muted);
 }
 
 /* 底部统计条 */
